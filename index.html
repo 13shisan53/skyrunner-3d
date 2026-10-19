@@ -2,90 +2,124 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SKYRUNNER — 3D Platformer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0a1020" />
+<title>SKYRUNNER — endless 3D platformer</title>
 <style>
   :root {
-    --ink: #e9f2ff;
-    --dim: #8fa3bf;
-    --accent: #5ce1e6;
+    --ink: #f2f7ff;
+    --dim: #9fb2cc;
+    --accent: #57e2c8;
     --accent-2: #ffd166;
-    --bg: #05070d;
+    --bg: #070b14;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none;
     background: var(--bg); color: var(--ink);
     font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
-    -webkit-font-smoothing: antialiased;
+    -webkit-font-smoothing: antialiased; user-select: none;
   }
   #game { display: block; width: 100vw; height: 100vh; touch-action: none; }
 
   .hud {
     position: fixed; inset: 0; pointer-events: none;
-    padding: 20px 24px; display: flex; justify-content: space-between; align-items: flex-start;
+    padding: max(16px, env(safe-area-inset-top)) 20px 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
     font-variant-numeric: tabular-nums;
   }
   .panel {
-    background: rgba(10, 16, 28, .55);
-    border: 1px solid rgba(120, 170, 220, .18);
-    border-radius: 12px;
-    padding: 10px 14px;
-    backdrop-filter: blur(10px);
+    background: rgba(9, 16, 30, .5);
+    border: 1px solid rgba(120, 190, 240, .18);
+    border-radius: 14px;
+    padding: 10px 16px;
+    backdrop-filter: blur(12px);
   }
-  .label { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
-  .value { font-size: 20px; font-weight: 650; letter-spacing: .02em; }
-  .row { display: flex; gap: 22px; }
-  .lives { display: flex; gap: 6px; margin-top: 6px; }
-  .pip { width: 16px; height: 4px; border-radius: 2px; background: var(--accent); opacity: .95; }
-  .pip.off { background: rgba(120, 150, 190, .25); }
+  .label { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
+  .value { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; }
+  .sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
+  .sub b { color: var(--accent-2); font-weight: 650; }
+
+  #mute {
+    pointer-events: auto; width: 44px; height: 44px; border-radius: 12px;
+    background: rgba(9, 16, 30, .5); border: 1px solid rgba(120, 190, 240, .18);
+    color: var(--ink); font-size: 18px; cursor: pointer; backdrop-filter: blur(12px);
+  }
+  #mute.off { color: #6d7f99; }
 
   .overlay {
     position: fixed; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 18px;
-    background: radial-gradient(ellipse at 50% 40%, rgba(12, 22, 40, .72), rgba(3, 5, 10, .92));
-    backdrop-filter: blur(6px); z-index: 10; text-align: center; padding: 24px;
+    align-items: center; justify-content: center; gap: 16px;
+    background: radial-gradient(ellipse at 50% 38%, rgba(16, 30, 54, .7), rgba(3, 6, 12, .94));
+    backdrop-filter: blur(7px); z-index: 10; text-align: center;
+    padding: 24px max(24px, env(safe-area-inset-left));
   }
   .overlay.hidden { display: none; }
   h1 {
-    margin: 0; font-size: clamp(44px, 9vw, 104px); line-height: .92;
-    letter-spacing: -.03em; font-weight: 800;
-    background: linear-gradient(180deg, #ffffff 0%, #8fd7ff 55%, #3aa0c7 100%);
+    margin: 0; font-size: clamp(40px, 9vw, 96px); line-height: .9;
+    letter-spacing: -.035em; font-weight: 850;
+    background: linear-gradient(180deg, #ffffff 0%, #9be9ff 52%, #45b6e0 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 0 24px rgba(90, 200, 255, .35));
+    filter: drop-shadow(0 0 26px rgba(90, 210, 255, .38));
   }
-  .tag { font-size: 12px; letter-spacing: .32em; text-transform: uppercase; color: var(--accent); }
-  .sub { color: var(--dim); font-size: 14px; max-width: 520px; line-height: 1.7; }
-  .keys { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+  .tag { font-size: 11px; letter-spacing: .34em; text-transform: uppercase; color: var(--accent); }
+  .sub2 { color: var(--dim); font-size: 14px; max-width: 520px; line-height: 1.7; margin: 0; }
+  .keys { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
   kbd {
-    font: inherit; font-size: 12px; padding: 6px 10px; border-radius: 7px;
-    background: rgba(140, 180, 230, .1); border: 1px solid rgba(140, 180, 230, .25);
-    color: #cfe6ff;
+    font: inherit; font-size: 12px; padding: 6px 10px; border-radius: 8px;
+    background: rgba(140, 190, 240, .1); border: 1px solid rgba(140, 190, 240, .22);
+    color: #d6eaff;
   }
-  button {
-    pointer-events: auto; cursor: pointer; font: inherit; font-weight: 650;
-    font-size: 15px; letter-spacing: .08em; text-transform: uppercase;
-    padding: 14px 34px; border-radius: 999px; border: 1px solid rgba(92, 225, 230, .55);
-    color: #031018; background: linear-gradient(180deg, #7ff3f0, #35c3cf);
-    box-shadow: 0 10px 40px rgba(53, 195, 207, .35), inset 0 1px 0 rgba(255,255,255,.5);
-    transition: transform .12s ease, box-shadow .12s ease;
+  button.primary {
+    pointer-events: auto; cursor: pointer; font: inherit; font-weight: 750;
+    font-size: 15px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 15px 38px; border-radius: 999px; border: 0;
+    color: #03171a; background: linear-gradient(180deg, #8dfff0, #2fc9c9);
+    box-shadow: 0 12px 44px rgba(47, 201, 201, .38), inset 0 1px 0 rgba(255,255,255,.6);
+    transition: transform .12s ease;
   }
-  button:hover { transform: translateY(-1px); box-shadow: 0 14px 46px rgba(53, 195, 207, .45), inset 0 1px 0 rgba(255,255,255,.5); }
-  button:active { transform: translateY(1px); }
+  button.primary:active { transform: scale(.97); }
+
+  .best { font-size: 13px; color: var(--dim); letter-spacing: .05em; }
+  .best b { color: var(--accent-2); font-size: 18px; }
+
+  /* ---- touch controls ---- */
+  .touch-ui { display: none; }
+  body.touch .touch-ui { display: block; }
+  .stick {
+    position: fixed; left: max(20px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom));
+    width: 132px; height: 132px; border-radius: 50%;
+    background: rgba(10, 20, 36, .34); border: 1.5px solid rgba(130, 200, 240, .22);
+    touch-action: none; z-index: 5;
+  }
+  .knob {
+    position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+    border-radius: 50%; background: radial-gradient(circle at 35% 30%, #d5fbff, #3fc9d6 70%);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .4); opacity: .92;
+  }
+  .jump {
+    position: fixed; right: max(20px, env(safe-area-inset-right)); bottom: max(30px, env(safe-area-inset-bottom));
+    width: 96px; height: 96px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 800; letter-spacing: .12em; color: #04222a;
+    background: radial-gradient(circle at 38% 32%, #b7fff4, #35c9c3 72%);
+    box-shadow: 0 10px 30px rgba(53, 201, 195, .35);
+    touch-action: none; z-index: 5;
+  }
+  .jump.down { transform: scale(.93); filter: brightness(1.15); }
 
   #err {
     position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 99;
     display: none; padding: 10px 14px; border-radius: 10px;
-    background: rgba(60, 8, 12, .92); border: 1px solid #ff5d6c; color: #ffd9dd;
+    background: rgba(60, 8, 12, .94); border: 1px solid #ff5d6c; color: #ffd9dd;
     font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     white-space: pre-wrap; max-height: 40vh; overflow: auto;
   }
   #err.show { display: block; }
-
-  .fps { position: fixed; right: 14px; bottom: 12px; font: 11px ui-monospace, monospace; color: rgba(140,170,210,.55); pointer-events: none; }
+  .fps { position: fixed; right: 12px; bottom: 12px; font: 11px ui-monospace, monospace; color: rgba(150,180,215,.45); pointer-events: none; }
+  body.touch .fps { display: none; }
 </style>
 <script>
-  // Surface fatal errors on screen (and in the title) so headless checks can see them.
   window.__fatal = null;
   function showFatal(msg) {
     window.__fatal = msg;
@@ -99,6 +133,9 @@
   window.addEventListener('unhandledrejection', function (e) {
     showFatal('unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
   });
+  if (('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer: coarse)').matches)) {
+    document.documentElement.classList.add('touch-device');
+  }
 </script>
 <script type="importmap">
 {
@@ -114,31 +151,35 @@
 
 <div class="hud">
   <div class="panel">
-    <div class="label">Coins</div>
-    <div class="value"><span id="coins">0</span><span style="color:var(--dim);font-size:14px"> / <span id="coinsTotal">0</span></span></div>
-    <div class="lives" id="lives"></div>
+    <div class="label">Score</div>
+    <div class="value" id="score">0</div>
+    <div class="sub"><b id="coins">0</b> coins · <span id="dist">0</span>m</div>
   </div>
-  <div class="panel" style="text-align:right">
-    <div class="label">Time</div>
-    <div class="value" id="time">0:00.0</div>
-  </div>
+  <button id="mute" title="mute">♪</button>
+</div>
+
+<div id="touch" class="touch-ui">
+  <div id="stick" class="stick"><div id="knob" class="knob"></div></div>
+  <div id="jump" class="jump">JUMP</div>
 </div>
 
 <div class="overlay" id="start">
-  <div class="tag">A 3D platformer</div>
+  <div class="tag">endless 3D platformer</div>
   <h1>SKYRUNNER</h1>
-  <div class="sub">在碎裂的浮空平台上奔跑，收集能量核心，踩碎巡逻无人机，抵达终点的光环。</div>
+  <p class="sub2">踩着彩色浮空平台一路向前，收集金币、踩扁巡逻无人机。掉下去就结束——看你能跑多远。</p>
   <div class="keys">
-    <kbd>W A S D</kbd><kbd>空格 跳跃</kbd><kbd>鼠标拖拽 转视角</kbd><kbd>Shift 加速</kbd><kbd>R 重开</kbd>
+    <kbd>WASD / 方向键</kbd><kbd>空格 跳</kbd><kbd>拖拽 转视角</kbd><kbd>Shift 冲刺</kbd>
   </div>
-  <button id="play">开始游戏</button>
+  <div class="best">最高分 <b id="bestStart">0</b></div>
+  <button class="primary" id="play">开始</button>
 </div>
 
-<div class="overlay hidden" id="win">
-  <div class="tag" id="winTag">Course clear</div>
-  <h1 id="winTitle">通关</h1>
-  <div class="sub" id="winStats"></div>
-  <button id="again">再来一次</button>
+<div class="overlay hidden" id="over">
+  <div class="tag" id="overTag">game over</div>
+  <h1 id="overTitle">结束</h1>
+  <p class="sub2" id="overStats"></p>
+  <div class="best">最高分 <b id="bestOver">0</b></div>
+  <button class="primary" id="again">再来一次</button>
 </div>
 
 <div class="fps" id="fps"></div>
