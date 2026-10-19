@@ -1,6 +1,7 @@
-// Capture in-game screenshots through CDP at chosen camera angles.
+// Capture in-game screenshots (desktop + mobile) through CDP.
 const PORT = Number(process.env.CDP_PORT || 9335);
 const OUT = process.env.OUT_DIR || '.';
+const BASE = process.env.BASE || 'http://127.0.0.1:8123';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function wsUrl() {
@@ -34,33 +35,53 @@ const evaluate = async (expression) => {
   if (r.result?.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails));
   return r.result?.result?.value;
 };
+const fs = await import('node:fs/promises');
+async function shot(name) {
+  const res = await send('Page.captureScreenshot', { format: 'png' });
+  const path = `${OUT}/${name}.png`;
+  await fs.writeFile(path, Buffer.from(res.result.data, 'base64'));
+  console.log('wrote', path);
+}
 
 await send('Runtime.enable');
 await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
 await send('Page.navigate', { url: `${BASE}/?shot=${Date.now()}` });
-await sleep(3000);
+for (let i = 0; i < 40; i++) {
+  if (await evaluate(`!!window.__skyrunner`)) break;
+  await sleep(500);
+}
+await sleep(600);
 
 await evaluate(`document.getElementById('play').click()`);
-await sleep(200);
+await sleep(1200);
+await evaluate(`__skyrunner.setCam(Math.PI, 0.28)`);
+await sleep(1500);
+await shot('desktop-start');
 
-const shots = [
-  { name: 'start',  tp: [0, 1.15, 0],    cam: [Math.PI, 0.30] },
-  { name: 'mid',    tp: [0, 7.45, 44],   cam: [2.9, 0.26] },
-  { name: 'finish', tp: [0, 11.05, 61],  cam: [Math.PI + 0.5, 0.22] },
-];
+/* move the camera and player ahead onto a real platform */
+await evaluate(`(() => {
+  const g = __skyrunner;
+  const p = g.platforms[5];
+  if (p) g.teleport(p.group.position.x, p.group.position.y + 0.56, p.group.position.z - 1);
+  g.setCam(2.75, 0.26);
+})()`);
+await sleep(2200);
+await shot('desktop-mid');
 
-for (const s of shots) {
-  await evaluate(`__skyrunner.teleport(${s.tp[0]}, ${s.tp[1]}, ${s.tp[2]}); __skyrunner.setCam(${s.cam[0]}, ${s.cam[1]});`);
-  await sleep(2600);
-  const res = await send('Page.captureScreenshot', { format: 'png' });
-  const b64 = res.result.data;
-  const fs = await import('node:fs/promises');
-  const path = `${OUT}/shot-${s.name}.png`;
-  await fs.writeFile(path, Buffer.from(b64, 'base64'));
-  console.log('wrote', path);
+/* mobile viewport */
+await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+await send('Page.navigate', { url: `${BASE}/?mobile=${Date.now()}` });
+for (let i = 0; i < 40; i++) {
+  if (await evaluate(`!!window.__skyrunner`)) break;
+  await sleep(500);
 }
+await sleep(500);
+await shot('mobile-start');
+await evaluate(`document.getElementById('play').click()`);
+await sleep(2500);
+await shot('mobile-play');
 
 ws.close();
 process.exit(0);
-
