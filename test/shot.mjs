@@ -1,4 +1,4 @@
-﻿// Capture in-game screenshots through CDP at chosen camera angles.
+// Capture in-game screenshots through CDP at chosen camera angles.
 const PORT = Number(process.env.CDP_PORT || 9335);
 const OUT = process.env.OUT_DIR || '.';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -38,7 +38,7 @@ const evaluate = async (expression) => {
 await send('Runtime.enable');
 await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: `http://127.0.0.1:8123/?shot=${Date.now()}` });
+await send('Page.navigate', { url: `${BASE}/?shot=${Date.now()}` });
 await sleep(3000);
 
 await evaluate(`document.getElementById('play').click()`);
