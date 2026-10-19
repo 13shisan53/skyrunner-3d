@@ -1,7 +1,7 @@
 // Functional smoke test for SKYRUNNER via Chrome DevTools Protocol.
 // Requires Chrome started with --remote-debugging-port=9333 and the local server on :8123.
 const PORT = 9333;
-const BASE = 'http://127.0.0.1:8123';
+const BASE = process.env.BASE || 'http://127.0.0.1:8123';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function wsUrl() {
@@ -42,7 +42,14 @@ async function evaluate(expression) {
 await send('Runtime.enable');
 await send('Page.enable');
 await send('Page.navigate', { url: `${BASE}/?nocache=${Date.now()}` });
-await sleep(2500);
+
+// wait for the module to boot (a cold load of three.js can take a couple of seconds)
+for (let i = 0; i < 40; i++) {
+  const up = await evaluate(`!!window.__skyrunner || !!window.__fatal`);
+  if (up) break;
+  await sleep(500);
+}
+await sleep(600);
 
 const boot = await evaluate(`(() => ({
   ready: document.body.dataset.ready || null,
