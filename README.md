@@ -1,12 +1,16 @@
 # SKYRUNNER
 
-A small 3D platformer that runs in the browser. No build step, no engine, no external art — one `index.html`, one ES module, and a vendored copy of three.js.
+An endless 3D platformer that runs in the browser — desktop and phone. No build step, no engine, no external art assets: one `index.html`, one ES module, and a vendored copy of three.js.
 
 **Play:** https://13shisan53.github.io/skyrunner-3d/
 
-![gameplay](docs/gameplay-mid.png)
+![gameplay](docs/desktop-mid.png)
+
+![mobile](docs/mobile-play.png)
 
 ## Controls
+
+**Desktop**
 
 | Input | Action |
 | --- | --- |
@@ -14,27 +18,45 @@ A small 3D platformer that runs in the browser. No build step, no engine, no ext
 | `Space` | jump — hold for height, tap for a short hop |
 | Mouse drag | orbit the camera |
 | `Shift` | sprint |
-| `R` | restart the run |
+| `R` | restart |
+| `M` | mute |
 
-## What's in it
+**Phone / tablet** — a virtual stick appears bottom-left, a jump button bottom-right, and dragging anywhere else on the screen orbits the camera. The layout respects safe-area insets on notched devices.
 
-- **Movement with momentum** — separate ground/air acceleration, ground friction, sprint multiplier, and a soft speed cap instead of instant velocity changes.
-- **Forgiving jump** — 0.11 s coyote time, 0.12 s jump buffer, variable jump height via gravity scaling, higher gravity while falling so descents feel snappy rather than floaty.
+## How it plays
+
+Endless: the course is generated ahead of you and recycled behind you, so there is no finish line — only the next platform.
+
+- **Score** = `10 × metres + 100 × coins`. Stomping a drone is worth 2 coins.
+- **Difficulty ramps** with distance: platforms shrink from ~9 m to ~4 m, gaps widen from 2 m to 4.3 m.
+- Falling below the course ends the run; your best score is kept in `localStorage`.
+- Drones patrol on three axes. Landing on top stomps them; hitting one from the side costs coins and knocks you back.
+
+## What's in the engine
+
+- **Momentum movement** — separate ground/air acceleration, ground friction, sprint multiplier.
+- **Forgiving jump** — 0.11 s coyote time, 0.12 s jump buffer, variable height, stronger gravity while falling.
 - **Kinematic AABB collision** resolved per axis, vertical first (resolving the ground before horizontal sweeps is what stops the character being shoved off ledges).
-- **Enemies** patrol on three axes; landing on one stomps it, touching it from the side costs a life.
-- **Two checkpoints**, a jump pad, 17 collectibles, and a finish ring.
-- **Rendering** — PCF soft shadows, ACES filmic tone mapping, exponential fog, a hand-written gradient skydome, emissive materials feeding an UnrealBloom pass, plus a projected contact shadow so the character never looks like it is floating.
-- **Synthesised audio** — every sound is generated with WebAudio oscillators at runtime; there are no audio files.
+- **Procedural world** — platforms, coins and drones are generated in segments and disposed once behind the camera; geometry and materials are cached.
+- **Cartoon character** — rounded-box body, sphere head, eyes, cheeks, antenna and swinging limbs, all built from primitives at runtime.
+- **Rendering** — PCF soft shadows, ACES filmic tone mapping, gradient skydome, emissive materials through UnrealBloom, projected contact shadow.
+- **Audio** — every sound effect and the background music are synthesised live with WebAudio. There are no audio files in the repo.
+
+## Music
+
+The background loop is an original piece written for this project: a D-major pentatonic piano arpeggio over a four-chord pad progression (Dmaj9 – Bm9 – Gmaj9 – A9), with bass and hi-hats, all scheduled from code at 88 BPM.
+
+It is **not** a cover or a reproduction of any existing song. If you want a specific track in the game, the honest way to do it is to licence the recording and load it as an audio file — I can wire that up, but I can't ship someone else's composition as generated code.
 
 ## Structure
 
 ```
-index.html            page shell, HUD, start/win overlays, import map
-src/main.js           the whole game (~800 lines)
+index.html                     shell, HUD, overlays, touch controls, import map
+src/main.js                    the whole game
 vendor/three.module.js         three.js r160 (vendored, no CDN at runtime)
-vendor/addons/...              postprocessing passes used by the bloom chain
-test/cdp-test.mjs     headless functional test (Chrome DevTools Protocol)
-test/shot.mjs         screenshot harness
+vendor/addons/...              postprocessing passes + RoundedBoxGeometry
+test/cdp-test.mjs              headless functional test (desktop + mobile emulation)
+test/shot.mjs                  screenshot harness
 ```
 
 ## Run locally
@@ -48,16 +70,16 @@ python -m http.server 8123
 
 ## Tests
 
-The functional test drives the game through CDP and asserts the things that are easy to break silently: that the player moves, stays on the platform, can jump, picks up a coin, and triggers the win state — and that no exception or console error was raised.
+The functional test drives the running game over the Chrome DevTools Protocol and asserts the things that break silently: movement, staying on the platform, jumping, coin pickup, endless generation, the game-over state, restart, and — in a second pass with mobile emulation — that the touch UI appears, the joystick moves the character and the jump button works. It also fails on any uncaught exception or console error.
 
 ```bash
 # terminal 1
 python -m http.server 8123
-# terminal 2 — Chrome must be started with --remote-debugging-port=9333
+# terminal 2 — Chrome started with --remote-debugging-port=9333
 node test/cdp-test.mjs
 ```
 
 ## Notes
 
-- Everything here is original: geometry is built from primitives at runtime, textures are generated on a canvas, and sounds are synthesised. No third-party characters, models, or assets are included.
-- three.js is MIT licensed and vendored in `vendor/` so the page has no runtime dependency on a CDN.
+- Everything is original: geometry is built from primitives at runtime, textures are generated on canvas, sounds and music are synthesised. No third-party characters, models or audio files are included.
+- three.js is MIT licensed and vendored in `vendor/`.
