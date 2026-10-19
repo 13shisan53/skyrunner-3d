@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SKYRUNNER — 3D Platformer</title>
+<style>
+  :root {
+    --ink: #e9f2ff;
+    --dim: #8fa3bf;
+    --accent: #5ce1e6;
+    --accent-2: #ffd166;
+    --bg: #05070d;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #game { display: block; width: 100vw; height: 100vh; touch-action: none; }
+
+  .hud {
+    position: fixed; inset: 0; pointer-events: none;
+    padding: 20px 24px; display: flex; justify-content: space-between; align-items: flex-start;
+    font-variant-numeric: tabular-nums;
+  }
+  .panel {
+    background: rgba(10, 16, 28, .55);
+    border: 1px solid rgba(120, 170, 220, .18);
+    border-radius: 12px;
+    padding: 10px 14px;
+    backdrop-filter: blur(10px);
+  }
+  .label { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+  .value { font-size: 20px; font-weight: 650; letter-spacing: .02em; }
+  .row { display: flex; gap: 22px; }
+  .lives { display: flex; gap: 6px; margin-top: 6px; }
+  .pip { width: 16px; height: 4px; border-radius: 2px; background: var(--accent); opacity: .95; }
+  .pip.off { background: rgba(120, 150, 190, .25); }
+
+  .overlay {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: radial-gradient(ellipse at 50% 40%, rgba(12, 22, 40, .72), rgba(3, 5, 10, .92));
+    backdrop-filter: blur(6px); z-index: 10; text-align: center; padding: 24px;
+  }
+  .overlay.hidden { display: none; }
+  h1 {
+    margin: 0; font-size: clamp(44px, 9vw, 104px); line-height: .92;
+    letter-spacing: -.03em; font-weight: 800;
+    background: linear-gradient(180deg, #ffffff 0%, #8fd7ff 55%, #3aa0c7 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 24px rgba(90, 200, 255, .35));
+  }
+  .tag { font-size: 12px; letter-spacing: .32em; text-transform: uppercase; color: var(--accent); }
+  .sub { color: var(--dim); font-size: 14px; max-width: 520px; line-height: 1.7; }
+  .keys { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+  kbd {
+    font: inherit; font-size: 12px; padding: 6px 10px; border-radius: 7px;
+    background: rgba(140, 180, 230, .1); border: 1px solid rgba(140, 180, 230, .25);
+    color: #cfe6ff;
+  }
+  button {
+    pointer-events: auto; cursor: pointer; font: inherit; font-weight: 650;
+    font-size: 15px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 14px 34px; border-radius: 999px; border: 1px solid rgba(92, 225, 230, .55);
+    color: #031018; background: linear-gradient(180deg, #7ff3f0, #35c3cf);
+    box-shadow: 0 10px 40px rgba(53, 195, 207, .35), inset 0 1px 0 rgba(255,255,255,.5);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 14px 46px rgba(53, 195, 207, .45), inset 0 1px 0 rgba(255,255,255,.5); }
+  button:active { transform: translateY(1px); }
+
+  #err {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 99;
+    display: none; padding: 10px 14px; border-radius: 10px;
+    background: rgba(60, 8, 12, .92); border: 1px solid #ff5d6c; color: #ffd9dd;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre-wrap; max-height: 40vh; overflow: auto;
+  }
+  #err.show { display: block; }
+
+  .fps { position: fixed; right: 14px; bottom: 12px; font: 11px ui-monospace, monospace; color: rgba(140,170,210,.55); pointer-events: none; }
+</style>
+<script>
+  // Surface fatal errors on screen (and in the title) so headless checks can see them.
+  window.__fatal = null;
+  function showFatal(msg) {
+    window.__fatal = msg;
+    var el = document.getElementById('err');
+    if (el) { el.textContent = String(msg); el.classList.add('show'); }
+    document.title = 'ERR: ' + String(msg).slice(0, 120);
+  }
+  window.addEventListener('error', function (e) {
+    showFatal((e.message || 'script error') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    showFatal('unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+  });
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/addons/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="hud">
+  <div class="panel">
+    <div class="label">Coins</div>
+    <div class="value"><span id="coins">0</span><span style="color:var(--dim);font-size:14px"> / <span id="coinsTotal">0</span></span></div>
+    <div class="lives" id="lives"></div>
+  </div>
+  <div class="panel" style="text-align:right">
+    <div class="label">Time</div>
+    <div class="value" id="time">0:00.0</div>
+  </div>
+</div>
+
+<div class="overlay" id="start">
+  <div class="tag">A 3D platformer</div>
+  <h1>SKYRUNNER</h1>
+  <div class="sub">在碎裂的浮空平台上奔跑，收集能量核心，踩碎巡逻无人机，抵达终点的光环。</div>
+  <div class="keys">
+    <kbd>W A S D</kbd><kbd>空格 跳跃</kbd><kbd>鼠标拖拽 转视角</kbd><kbd>Shift 加速</kbd><kbd>R 重开</kbd>
+  </div>
+  <button id="play">开始游戏</button>
+</div>
+
+<div class="overlay hidden" id="win">
+  <div class="tag" id="winTag">Course clear</div>
+  <h1 id="winTitle">通关</h1>
+  <div class="sub" id="winStats"></div>
+  <button id="again">再来一次</button>
+</div>
+
+<div class="fps" id="fps"></div>
+<div id="err"></div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
