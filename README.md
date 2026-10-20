@@ -80,11 +80,11 @@ AMD Radeon 610M · Chrome · 1280×720 · DPR 1 · headless GPU (`--use-angle=d3
 
 | Metric | Result |
 | --- | --- |
-| Average | **~80–110 fps** |
-| p50 / p95 / p99 | **~8–11 / ~17–22 / ~22–24 ms** |
+| Average | **~90 fps** |
+| p50 / p95 / p99 | **~11 / ~16 / ~18 ms** |
 | Long frames (>50 ms) | **0** |
 | Draw calls / triangles | **~93 / ~33k** |
-| JS heap | **~34–40 MB** |
+| JS heap | **~23 MB** |
 
 Soft-rendered Chrome (SwiftShader) is slower; the adaptive quality manager drops DPR, shadows, clouds and particles to keep it playable.
 
