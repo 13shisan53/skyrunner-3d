@@ -251,6 +251,18 @@ body.touch .touch-controls { display: inline; }
 .best-gap.near span { color: var(--gold); }
 #bestGap { transition: opacity .25s; }
 
+.jump-hint {
+  position: absolute; left: 50%; bottom: 23%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+  border-radius: 999px; font-size: 13px; font-weight: 800; letter-spacing: .06em;
+  color: var(--ink); pointer-events: none; animation: hint-pulse 1.7s ease-in-out infinite;
+}
+.jump-hint kbd { font: inherit; font-size: 10px; letter-spacing: .14em; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); }
+.hint-touch { display: none; }
+body.touch .hint-key, body.touch .hint-desktop { display: none; }
+body.touch .hint-touch { display: inline; }
+@keyframes hint-pulse { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: .9; } 50% { transform: translateX(-50%) translateY(-4px); opacity: 1; } }
+
 /* ---------- overlays / panels ---------- */
 .overlay { display: flex; align-items: center; justify-content: center; padding: 20px; background: radial-gradient(ellipse at 50% 40%, rgba(10, 18, 34, .76), rgba(3, 6, 12, .94)); }
 .panel { width: min(560px, 94vw); max-height: 92vh; overflow: auto; padding: clamp(22px, 4vw, 38px); border-radius: 24px; animation: panel-in .4s cubic-bezier(.2, .8, .2, 1); scrollbar-width: thin; }

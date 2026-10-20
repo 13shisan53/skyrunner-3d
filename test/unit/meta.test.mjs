@@ -75,6 +75,22 @@ test('daily seed is stable per day and first attempt is the only rewarded one', 
   assert.equal(dailyRewardAvailable(s, d), false);
 });
 
+test('blocked global localStorage does not throw', () => {
+  const desc = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    get() { throw new Error('blocked'); },
+  });
+  try {
+    assert.doesNotThrow(() => loadSave());
+    assert.doesNotThrow(() => persist(defaultSave()));
+    assert.equal(loadSave().best, 0);
+  } finally {
+    if (desc) Object.defineProperty(globalThis, 'localStorage', desc);
+    else delete globalThis.localStorage;
+  }
+});
+
 test('todayKey uses local calendar fields', () => {
   assert.equal(todayKey(new Date(2026, 0, 2)), '2026-01-02');
 });

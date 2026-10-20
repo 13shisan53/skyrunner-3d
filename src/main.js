@@ -371,6 +371,8 @@ function startRun(seed, opts = {}) {
   world.reset(state.seed);
   cameraRig.reset(player);
   ui.showPlay(save, { daily: state.daily });
+  if (save.stats.runs === 0) ui.showJumpHint();
+  else ui.hideJumpHint();
   fx.setTrail(save.worn.trail);
   input.clear();
   input.setEnabled(true);
@@ -410,6 +412,7 @@ function toMenu() {
   input.setEnabled(false);
   input.clear();
   audio.stopMusic();
+  ui.hideJumpHint();
   ui.showMenu(save);
   player.rig.visible = false;
   player.blob.visible = false;
@@ -434,6 +437,7 @@ function finishRun() {
   state.mode = 'over';
   state.timeScale = 1;
   input.setEnabled(false);
+  ui.hideJumpHint();
   audio.stopMusic();
   audio.play('over');
   const run = {
@@ -469,6 +473,7 @@ function handleEvents(events) {
       cameraRig.shake(0.035);
       fx.dust(player.pos, 0xd8f5ff, 4);
       audio.play('jump');
+      ui.hideJumpHint();
     } else if (ev.type === 'land') {
       cameraRig.shake(Math.min(0.1, ev.impact * 0.006));
       fx.dust(player.pos, 0xcdbfae, ev.impact > 10 ? 9 : 5);

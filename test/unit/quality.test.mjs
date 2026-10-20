@@ -20,6 +20,12 @@ test('never drops below low or above high', () => {
   assert.equal(q.tier, 'high');
 });
 
+test('sustained 60ms frames still downgrade (slow devices are not ignored)', () => {
+  const q = new QualityJudge('high');
+  for (let i = 0; i < 500; i++) q.push(60, 1 / 16);
+  assert.equal(q.tier, 'low');
+});
+
 test('tab-sized gaps are ignored', () => {
   const q = new QualityJudge('high');
   for (let i = 0; i < 400; i++) q.push(500, 1 / 60);

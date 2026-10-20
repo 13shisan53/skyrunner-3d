@@ -66,6 +66,17 @@ function stopAll() {
   started.length = 0;
 }
 
+async function closePages(port) {
+  try {
+    const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+    for (const page of list) {
+      if (page.type === 'page' && page.id) {
+        await fetch(`http://127.0.0.1:${port}/json/close/${page.id}`).catch(() => {});
+      }
+    }
+  } catch {}
+}
+
 const results = [];
 
 function run(label, argsArr, env) {
@@ -91,6 +102,7 @@ try {
   }
 
   if (withPerf) {
+    await closePages(9333);
     await ensureChrome(9335, true);
     ok = run('perf', ['test/perf.mjs'], { BASE, CDP_PORT: '9335' }) && ok;
   }

@@ -29,6 +29,8 @@ const zh = {
   'hud.bestGap': '离纪录还差 {n}',
   'hud.combo': '连击',
   'hud.daily': '今日挑战',
+  'hint.jump': '跳跃',
+  'hint.tap': '点按跳跃',
 
   'over.kicker': '本局结束',
   'over.delta': '差 {n} 分',
@@ -162,6 +164,8 @@ const en = {
   'hud.bestGap': '{n} to record',
   'hud.combo': 'COMBO',
   'hud.daily': 'DAILY',
+  'hint.jump': 'JUMP',
+  'hint.tap': 'TAP TO JUMP',
 
   'over.kicker': 'RUN ENDED',
   'over.delta': '{n} points short',

@@ -2,6 +2,7 @@ import { connect, navigate, waitFor } from '../lib/cdp.mjs';
 
 const base = process.env.BASE || 'http://127.0.0.1:8123';
 const client = await connect(Number(process.env.CDP_PORT || 9333));
+await client.evaluate(`localStorage.clear()`);
 await navigate(client, `${base}/?play=${Date.now()}`);
 await waitFor(async () => client.evaluate(`!!window.__skyrunner`), 20000);
 await waitFor(async () => client.evaluate(`document.body.dataset.ready === '1'`), 20000);
@@ -11,6 +12,8 @@ await new Promise((r) => setTimeout(r, 900));
 const start = await client.evaluate(`({ mode: __skyrunner.state.mode, z: +__skyrunner.player.pos.z.toFixed(2), grounded: __skyrunner.player.grounded })`);
 if (start.mode !== 'play') throw new Error('mode not play');
 if (start.z <= 0.5) throw new Error('not auto-running: z=' + start.z);
+const hintBefore = await client.evaluate(`!document.getElementById('jumpHint').classList.contains('hidden')`);
+if (!hintBefore) throw new Error('first-run jump hint missing');
 
 await client.evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyD' }))`);
 await new Promise((r) => setTimeout(r, 500));
@@ -24,6 +27,8 @@ await new Promise((r) => setTimeout(r, 200));
 const y1 = await client.evaluate(`+__skyrunner.player.pos.y.toFixed(2)`);
 await client.evaluate(`window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space' }))`);
 if (y1 <= y0 + 0.3) throw new Error(`jump did not rise: ${y0} -> ${y1}`);
+const hintAfter = await client.evaluate(`document.getElementById('jumpHint').classList.contains('hidden')`);
+if (!hintAfter) throw new Error('jump hint did not hide after first jump');
 
 await client.evaluate(`window.dispatchEvent(new Event('blur'))`);
 await new Promise((r) => setTimeout(r, 120));
@@ -50,5 +55,5 @@ const errors = client.events
   .map((e) => e.params.exceptionDetails.text);
 if (errors.length) throw new Error('exceptions: ' + errors.join(' | '));
 
-console.log(JSON.stringify({ start, steer, y0, y1, blurred, resumed, paused }, null, 2));
+console.log(JSON.stringify({ start, hintBefore, steer, y0, y1, hintAfter, blurred, resumed, paused }, null, 2));
 client.close();

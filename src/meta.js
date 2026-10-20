@@ -85,9 +85,10 @@ function sanitize(saved, base) {
   return out;
 }
 
-export function loadSave(storage = globalThis.localStorage) {
+export function loadSave(storage) {
   const base = defaultSave(new Date());
   try {
+    storage = storage || globalThis.localStorage;
     const raw = storage && storage.getItem(STORAGE_KEY);
     if (!raw) return base;
     const parsed = JSON.parse(raw);
@@ -100,8 +101,9 @@ export function loadSave(storage = globalThis.localStorage) {
   }
 }
 
-export function persist(save, storage = globalThis.localStorage) {
+export function persist(save, storage) {
   try {
+    storage = storage || globalThis.localStorage;
     if (!storage) return false;
     storage.setItem(STORAGE_KEY, JSON.stringify(save));
     return true;

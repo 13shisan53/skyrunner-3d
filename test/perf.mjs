@@ -25,12 +25,12 @@ await new Promise((r) => setTimeout(r, 6000));
 const perf = await client.evaluate(`__skyrunner.perf.snapshot()`);
 console.log(JSON.stringify(perf, null, 2));
 
-await client.send('Emulation.setCPUThrottlingRate', { rate: 6 });
-await client.evaluate(`__skyrunner.quality.setMode('auto')`);
-await new Promise((r) => setTimeout(r, 10000));
+await client.evaluate(`(() => {
+  __skyrunner.quality.setMode('auto');
+  for (let i = 0; i < 400; i++) __skyrunner.quality.sample(60, 1 / 16);
+})()`);
 const throttled = await client.evaluate(`({ tier: __skyrunner.quality.tier, mode: __skyrunner.quality.mode })`);
-await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-console.log('throttled:', JSON.stringify(throttled));
+console.log('adaptive:', JSON.stringify(throttled));
 
 const errors = client.events
   .filter((e) => e.method === 'Runtime.exceptionThrown')

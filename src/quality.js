@@ -18,8 +18,8 @@ export class QualityJudge {
   }
 
   push(frameMs, dt) {
-    if (!Number.isFinite(frameMs) || frameMs <= 0 || frameMs > 50) return null;
-    this.samples.push(frameMs);
+    if (!Number.isFinite(frameMs) || frameMs <= 0 || frameMs > 250) return null;
+    this.samples.push(Math.min(frameMs, 50));
     if (this.samples.length > 120) this.samples.shift();
     if (this.samples.length < 30) return null;
 

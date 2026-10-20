@@ -21,6 +21,7 @@ export class UI {
       score: $('score'), coins: $('coins'), dist: $('dist'),
       combo: $('combo'), comboFill: $('comboFill'), comboMult: $('comboMult'),
       bestGap: $('bestGap'), bestGapText: $('bestGapText'), bestGapFill: $('bestGapFill'),
+      jumpHint: $('jumpHint'),
       dailyChip: $('dailyChip'),
       overDelta: $('overDelta'), overScore: $('overScore'), overDist: $('overDist'),
       overCoins: $('overCoins'), overCombo: $('overCombo'), overBar: $('overBar'),
@@ -175,6 +176,14 @@ export class UI {
     this.el.combo.classList.remove('live');
     this.el.bestGap.classList.add('hidden');
     if (this.el.comboFill) this.el.comboFill.style.strokeDashoffset = '113.1';
+  }
+
+  showJumpHint() {
+    if (this.el.jumpHint) this.el.jumpHint.classList.remove('hidden');
+  }
+
+  hideJumpHint() {
+    if (this.el.jumpHint) this.el.jumpHint.classList.add('hidden');
   }
 
   showOver(result, save) {
