@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SKYRUNNER — 隐私说明</title>
+<style>
+  :root { --ink: #eef6ff; --dim: #9fb2cc; --mint: #5ff2d0; --bg: #05070d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.75 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 56px 24px 96px; }
+  a { color: var(--mint); }
+  h1 { font-size: clamp(34px, 6vw, 54px); line-height: 1; letter-spacing: -.04em; margin: 0 0 10px; }
+  h2 { font-size: 18px; margin: 34px 0 8px; letter-spacing: .02em; }
+  p, li { color: var(--dim); }
+  .kicker { color: var(--mint); font-size: 11px; letter-spacing: .3em; text-transform: uppercase; }
+  .back { display: inline-block; margin-bottom: 34px; font-size: 12px; letter-spacing: .1em; text-decoration: none; }
+  .card { padding: 18px 22px; border: 1px solid rgba(137, 195, 255, .16); border-radius: 16px; background: rgba(16, 28, 48, .5); }
+  ul { padding-left: 20px; }
+  code { color: #c7e7ff; font-size: 13px; }
+  footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid rgba(137, 195, 255, .12); font-size: 11px; color: #6d7f99; letter-spacing: .08em; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="./">← 回到 SKYRUNNER</a>
+  <p class="kicker">Privacy</p>
+  <h1>隐私说明</h1>
+  <p>SKYRUNNER 是一个纯静态网页游戏：没有账号、没有服务器、没有广告，也不会向任何第三方发送数据。</p>
+
+  <div class="card">
+    <strong>一句话版本：</strong>所有游戏数据只存在你自己的浏览器里，你可以随时关闭或清除。
+  </div>
+
+  <h2>1. 采集什么</h2>
+  <ul>
+    <li><b>本地存档</b>：最高分、金币、已解锁外观、设置、每日挑战最佳、最近 10 局成绩、今日任务进度。</li>
+    <li><b>本地统计</b>（可关闭）：会话开始、开局、结算、重开、离开，以及分数、距离、金币、连击、时长。设备只记录粗粒度档位（low / mid / high），不记录完整 UA、WebGL 渲染器字符串或任何指纹。</li>
+  </ul>
+  <p>以上数据保存在浏览器的 <code>localStorage</code>，不会通过网络上传。</p>
+
+  <h2>2. 用来做什么</h2>
+  <p>仅用于在本地展示你的成绩、进度与设置。没有排行榜、没有用户画像、没有广告投放。</p>
+
+  <h2>3. 保留多久</h2>
+  <p>本地统计最多保留最近 200 条事件，超过 30 天的事件会在下次打开时清理。存档保留到你主动清除浏览器数据或点击设置里的“清除存档”。</p>
+
+  <h2>4. 如何关闭</h2>
+  <p>打开游戏 → 设置 → 关闭“本地统计”。关闭后不再写入任何统计事件（最高分等必要存档仍会保留）。</p>
+  <p>你也可以在浏览器设置中清除本站数据，或使用无痕窗口游玩；这不会影响游戏功能。</p>
+
+  <h2>5. 第三方</h2>
+  <p>没有第三方分析、字体、CDN、广告或社交插件。three.js 以 MIT 许可证随项目本地提供。所有美术、音效与音乐均由代码生成或原创。</p>
+
+  <h2>6. 联系</h2>
+  <p>如果对数据有疑问，请通过项目仓库的 issue 联系作者。</p>
+
+  <footer>SKYRUNNER v1.1 · 本地存档 · 无网络上传</footer>
+</main>
+</body>
+</html>

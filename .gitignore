@@ -1,0 +1,10 @@
+node_modules/
+.chrome-*/
+.edge-*/
+.chrome-profile/
+.chrome-gpu/
+.chrome-test/
+test/.artifacts/
+*.log
+.DS_Store
+Thumbs.db

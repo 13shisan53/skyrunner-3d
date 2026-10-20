@@ -1,87 +1,69 @@
-// Capture in-game screenshots (desktop + mobile) through CDP.
-const PORT = Number(process.env.CDP_PORT || 9335);
-const OUT = process.env.OUT_DIR || '.';
-const BASE = process.env.BASE || 'http://127.0.0.1:8123';
+import fs from 'node:fs/promises';
+import { connect, navigate, waitFor } from './lib/cdp.mjs';
+
+const base = process.env.BASE || 'http://127.0.0.1:8123';
+const port = Number(process.env.CDP_PORT || 9333);
+const out = process.env.OUT_DIR || 'docs/shots';
+const client = await connect(port);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function wsUrl() {
-  for (let i = 0; i < 60; i++) {
-    try {
-      const r = await fetch(`http://127.0.0.1:${PORT}/json/list`);
-      const list = await r.json();
-      const page = list.find((t) => t.type === 'page');
-      if (page?.webSocketDebuggerUrl) return page.webSocketDebuggerUrl;
-    } catch {}
-    await sleep(250);
-  }
-  throw new Error('no target');
-}
-
-const ws = new WebSocket(await wsUrl());
-await new Promise((r) => ws.addEventListener('open', r));
-let seq = 0;
-const pending = new Map();
-ws.addEventListener('message', (ev) => {
-  const m = JSON.parse(ev.data);
-  if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
-});
-const send = (method, params = {}) => {
-  const id = ++seq;
-  ws.send(JSON.stringify({ id, method, params }));
-  return new Promise((r) => pending.set(id, r));
-};
-const evaluate = async (expression) => {
-  const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-  if (r.result?.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails));
-  return r.result?.result?.value;
-};
-const fs = await import('node:fs/promises');
 async function shot(name) {
-  const res = await send('Page.captureScreenshot', { format: 'png' });
-  const path = `${OUT}/${name}.png`;
-  await fs.writeFile(path, Buffer.from(res.result.data, 'base64'));
-  console.log('wrote', path);
+  const res = await client.send('Page.captureScreenshot', { format: 'png' });
+  await fs.mkdir(out, { recursive: true });
+  await fs.writeFile(`${out}/${name}.png`, Buffer.from(res.result.data, 'base64'));
+  console.log('wrote', `${out}/${name}.png`);
 }
 
-await send('Runtime.enable');
-await send('Page.enable');
-await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: `${BASE}/?shot=${Date.now()}` });
-for (let i = 0; i < 40; i++) {
-  if (await evaluate(`!!window.__skyrunner`)) break;
-  await sleep(500);
-}
-await sleep(600);
+await client.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
+await client.evaluate(`localStorage.clear()`);
+await navigate(client, `${base}/?shots=${Date.now()}`);
+await waitFor(async () => client.evaluate(`document.body.dataset.ready === '1'`), 20000);
+await sleep(700);
+await shot('menu');
 
-await evaluate(`document.getElementById('play').click()`);
-await sleep(1200);
-await evaluate(`__skyrunner.setCam(Math.PI, 0.28)`);
-await sleep(1500);
-await shot('desktop-start');
-
-/* move the camera and player ahead onto a real platform */
-await evaluate(`(() => {
-  const g = __skyrunner;
-  const p = g.platforms[5];
-  if (p) g.teleport(p.group.position.x, p.group.position.y + 0.56, p.group.position.z - 1);
-  g.setCam(2.75, 0.26);
-})()`);
-await sleep(2200);
-await shot('desktop-mid');
-
-/* mobile viewport */
-await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
-await send('Page.navigate', { url: `${BASE}/?mobile=${Date.now()}` });
-for (let i = 0; i < 40; i++) {
-  if (await evaluate(`!!window.__skyrunner`)) break;
-  await sleep(500);
-}
+await client.evaluate(`document.getElementById('playBtn').click()`);
+await sleep(800);
+await client.evaluate(`__skyrunner.debug.freeze(true)`);
+await sleep(400);
+await client.evaluate(`__skyrunner.debug.setBiome(0)`);
+await sleep(400);
+await shot('play-dawn');
+await client.evaluate(`__skyrunner.debug.setBiome(2)`);
 await sleep(500);
-await shot('mobile-start');
-await evaluate(`document.getElementById('play').click()`);
-await sleep(2500);
+await shot('play-dusk');
+await client.evaluate(`__skyrunner.debug.setBiome(3)`);
+await sleep(500);
+await shot('play-night');
+
+await client.evaluate(`__skyrunner.debug.freeze(false)`);
+await client.evaluate(`__skyrunner.debug.kill()`);
+await sleep(1700);
+await shot('over');
+
+await client.evaluate(`document.getElementById('menuBtn2').click()`);
+await sleep(500);
+await client.evaluate(`document.getElementById('settingsBtn').click()`);
+await sleep(400);
+await shot('settings');
+await client.evaluate(`document.getElementById('closeSettings').click()`);
+await sleep(250);
+
+await client.evaluate(`__skyrunner.debug.grantCoins(300)`);
+await client.evaluate(`document.getElementById('lockerBtn').click()`);
+await sleep(400);
+await shot('locker');
+await client.evaluate(`document.getElementById('closeLocker').click()`);
+
+await client.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+await client.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+await navigate(client, `${base}/?mobile=${Date.now()}`);
+await waitFor(async () => client.evaluate(`document.body.dataset.ready === '1'`), 20000);
+await sleep(600);
+await shot('mobile-menu');
+await client.evaluate(`document.getElementById('playBtn').click()`);
+await sleep(800);
+await client.evaluate(`__skyrunner.debug.freeze(true)`);
+await sleep(400);
 await shot('mobile-play');
 
-ws.close();
-process.exit(0);
+client.close();

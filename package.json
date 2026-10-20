@@ -1,0 +1,16 @@
+{
+  "name": "skyrunner",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SKYRUNNER — an endless 3D platformer in the browser",
+  "scripts": {
+    "test": "node test/run-all.mjs",
+    "test:unit": "node test/run-unit.mjs",
+    "test:e2e": "node test/run-all.mjs --e2e",
+    "test:perf": "node test/run-all.mjs --e2e --perf",
+    "test:size": "node test/size.mjs",
+    "shots": "node test/shot.mjs",
+    "serve": "python -m http.server 8123 --bind 127.0.0.1"
+  }
+}

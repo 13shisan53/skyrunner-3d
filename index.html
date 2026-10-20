@@ -3,139 +3,28 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<meta name="theme-color" content="#0a1020" />
+<meta name="theme-color" content="#05070d" />
+<meta name="description" content="SKYRUNNER — an endless 3D platformer you can play with one thumb." />
 <title>SKYRUNNER — endless 3D platformer</title>
-<style>
-  :root {
-    --ink: #f2f7ff;
-    --dim: #9fb2cc;
-    --accent: #57e2c8;
-    --accent-2: #ffd166;
-    --bg: #070b14;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none;
-    background: var(--bg); color: var(--ink);
-    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
-    -webkit-font-smoothing: antialiased; user-select: none;
-  }
-  #game { display: block; width: 100vw; height: 100vh; touch-action: none; }
-
-  .hud {
-    position: fixed; inset: 0; pointer-events: none;
-    padding: max(16px, env(safe-area-inset-top)) 20px 0;
-    display: flex; justify-content: space-between; align-items: flex-start;
-    font-variant-numeric: tabular-nums;
-  }
-  .panel {
-    background: rgba(9, 16, 30, .5);
-    border: 1px solid rgba(120, 190, 240, .18);
-    border-radius: 14px;
-    padding: 10px 16px;
-    backdrop-filter: blur(12px);
-  }
-  .label { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
-  .value { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; }
-  .sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
-  .sub b { color: var(--accent-2); font-weight: 650; }
-
-  #mute {
-    pointer-events: auto; width: 44px; height: 44px; border-radius: 12px;
-    background: rgba(9, 16, 30, .5); border: 1px solid rgba(120, 190, 240, .18);
-    color: var(--ink); font-size: 18px; cursor: pointer; backdrop-filter: blur(12px);
-  }
-  #mute.off { color: #6d7f99; }
-
-  .overlay {
-    position: fixed; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 16px;
-    background: radial-gradient(ellipse at 50% 38%, rgba(16, 30, 54, .7), rgba(3, 6, 12, .94));
-    backdrop-filter: blur(7px); z-index: 10; text-align: center;
-    padding: 24px max(24px, env(safe-area-inset-left));
-  }
-  .overlay.hidden { display: none; }
-  h1 {
-    margin: 0; font-size: clamp(40px, 9vw, 96px); line-height: .9;
-    letter-spacing: -.035em; font-weight: 850;
-    background: linear-gradient(180deg, #ffffff 0%, #9be9ff 52%, #45b6e0 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 0 26px rgba(90, 210, 255, .38));
-  }
-  .tag { font-size: 11px; letter-spacing: .34em; text-transform: uppercase; color: var(--accent); }
-  .sub2 { color: var(--dim); font-size: 14px; max-width: 520px; line-height: 1.7; margin: 0; }
-  .keys { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-  kbd {
-    font: inherit; font-size: 12px; padding: 6px 10px; border-radius: 8px;
-    background: rgba(140, 190, 240, .1); border: 1px solid rgba(140, 190, 240, .22);
-    color: #d6eaff;
-  }
-  button.primary {
-    pointer-events: auto; cursor: pointer; font: inherit; font-weight: 750;
-    font-size: 15px; letter-spacing: .1em; text-transform: uppercase;
-    padding: 15px 38px; border-radius: 999px; border: 0;
-    color: #03171a; background: linear-gradient(180deg, #8dfff0, #2fc9c9);
-    box-shadow: 0 12px 44px rgba(47, 201, 201, .38), inset 0 1px 0 rgba(255,255,255,.6);
-    transition: transform .12s ease;
-  }
-  button.primary:active { transform: scale(.97); }
-
-  .best { font-size: 13px; color: var(--dim); letter-spacing: .05em; }
-  .best b { color: var(--accent-2); font-size: 18px; }
-
-  /* ---- touch controls ---- */
-  .touch-ui { display: none; }
-  body.touch .touch-ui { display: block; }
-  .stick {
-    position: fixed; left: max(20px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom));
-    width: 132px; height: 132px; border-radius: 50%;
-    background: rgba(10, 20, 36, .34); border: 1.5px solid rgba(130, 200, 240, .22);
-    touch-action: none; z-index: 5;
-  }
-  .knob {
-    position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
-    border-radius: 50%; background: radial-gradient(circle at 35% 30%, #d5fbff, #3fc9d6 70%);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, .4); opacity: .92;
-  }
-  .jump {
-    position: fixed; right: max(20px, env(safe-area-inset-right)); bottom: max(30px, env(safe-area-inset-bottom));
-    width: 96px; height: 96px; border-radius: 50%;
-    display: grid; place-items: center;
-    font-size: 12px; font-weight: 800; letter-spacing: .12em; color: #04222a;
-    background: radial-gradient(circle at 38% 32%, #b7fff4, #35c9c3 72%);
-    box-shadow: 0 10px 30px rgba(53, 201, 195, .35);
-    touch-action: none; z-index: 5;
-  }
-  .jump.down { transform: scale(.93); filter: brightness(1.15); }
-
-  #err {
-    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 99;
-    display: none; padding: 10px 14px; border-radius: 10px;
-    background: rgba(60, 8, 12, .94); border: 1px solid #ff5d6c; color: #ffd9dd;
-    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    white-space: pre-wrap; max-height: 40vh; overflow: auto;
-  }
-  #err.show { display: block; }
-  .fps { position: fixed; right: 12px; bottom: 12px; font: 11px ui-monospace, monospace; color: rgba(150,180,215,.45); pointer-events: none; }
-  body.touch .fps { display: none; }
-</style>
+<link rel="stylesheet" href="./styles.css" />
 <script>
   window.__fatal = null;
-  function showFatal(msg) {
-    window.__fatal = msg;
-    var el = document.getElementById('err');
-    if (el) { el.textContent = String(msg); el.classList.add('show'); }
-    document.title = 'ERR: ' + String(msg).slice(0, 120);
-  }
+  window.showFatal = function (msg) {
+    window.__fatal = String(msg);
+    try {
+      var el = document.getElementById('err');
+      if (el) { el.textContent = String(msg); el.classList.add('show'); }
+      var load = document.getElementById('loading');
+      if (load) load.classList.add('gone');
+      document.title = 'ERR: ' + String(msg).slice(0, 120);
+    } catch (e) {}
+  };
   window.addEventListener('error', function (e) {
-    showFatal((e.message || 'script error') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
+    window.showFatal((e.message || 'script error') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
   });
   window.addEventListener('unhandledrejection', function (e) {
-    showFatal('unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    window.showFatal('unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
   });
-  if (('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer: coarse)').matches)) {
-    document.documentElement.classList.add('touch-device');
-  }
 </script>
 <script type="importmap">
 {
@@ -147,43 +36,193 @@
 </script>
 </head>
 <body>
-<canvas id="game"></canvas>
+<canvas id="game" aria-label="3D 游戏画面" data-i18n-aria="a11y.canvas"></canvas>
+<div class="scene-shade" aria-hidden="true"></div>
+<div class="scene-glow" aria-hidden="true"></div>
 
-<div class="hud">
-  <div class="panel">
-    <div class="label">Score</div>
-    <div class="value" id="score">0</div>
-    <div class="sub"><b id="coins">0</b> coins · <span id="dist">0</span>m</div>
+<section id="menu" class="screen menu">
+  <header class="topbar">
+    <a class="brand" href="#" id="brand" aria-label="SKYRUNNER">
+      <span class="brand-mark">SR</span>
+      <span class="brand-text">SKYRUNNER<small data-i18n="app.kicker">无尽 3D 平台跳跃</small></span>
+    </a>
+    <div class="top-actions">
+      <div class="best-chip"><span data-i18n="app.best">最高分</span><b id="bestTop">0</b></div>
+      <button id="muteBtn" class="icon-btn" aria-label="静音" data-i18n-aria="a11y.mute">♪</button>
+      <button id="settingsBtn" class="icon-btn" aria-label="设置" data-i18n-aria="a11y.settings">⚙</button>
+    </div>
+  </header>
+
+  <main class="hero">
+    <p class="kicker"><i></i><span data-i18n="app.kicker">无尽 3D 平台跳跃</span></p>
+    <h1 class="title"><span>SKY</span><span>RUNNER</span></h1>
+    <p class="tagline" data-i18n="app.tagline">只有一个动作：跳。</p>
+    <p class="lede" data-i18n="app.sub">自动向前。躲开无人机，别掉下去。</p>
+    <div class="cta-row">
+      <button id="playBtn" class="btn primary"><span data-i18n="app.cta">开始</span><span class="arrow">→</span></button>
+      <button id="dailyBtn" class="daily-card">
+        <span class="daily-kicker"><i class="live-dot"></i><span data-i18n="menu.daily">今日挑战</span></span>
+        <b id="menuDailyBest">—</b>
+        <span class="daily-note" data-i18n="daily.firstOnly">只有第一次尝试计入金币与任务</span>
+      </button>
+    </div>
+    <p class="controls"><span class="desktop-controls" data-i18n="menu.controls">A/D 横移 · 空格跳 · R 重开 · Esc 暂停</span><span class="touch-controls" data-i18n="menu.controlsTouch">左下拖动横移 · 右下点按跳</span></p>
+  </main>
+
+  <aside class="side">
+    <div class="stats-card glass">
+      <div class="stat"><span data-i18n="menu.best">最高分</span><b id="menuBest">0</b></div>
+      <div class="stat"><span data-i18n="menu.runs">局数</span><b id="menuRuns">0</b></div>
+      <div class="stat"><span data-i18n="menu.total">总里程</span><b id="menuTotal">0</b></div>
+      <div class="stat"><span data-i18n="menu.maxCombo">最高连击</span><b id="menuCombo">0</b></div>
+      <div class="spark-wrap">
+        <span class="mini-label" data-i18n="menu.recent">最近 10 局</span>
+        <svg id="sparkline" viewBox="0 0 180 44" preserveAspectRatio="none" aria-hidden="true">
+          <polyline id="sparklinePath" points="" fill="none" stroke="url(#sparkGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5ff2d0" stop-opacity=".2"/><stop offset="1" stop-color="#5ff2d0"/></linearGradient></defs>
+        </svg>
+      </div>
+    </div>
+    <div class="side-actions">
+      <button id="lockerBtn" class="btn ghost small"><span data-i18n="menu.locker">衣柜</span><b id="menuCoins">0</b></button>
+    </div>
+  </aside>
+
+  <footer class="menu-foot">
+    <span data-i18n="menu.footer">原创美术与音频 · 无外部资源</span>
+    <span class="foot-right"><a class="privacy-link" href="./privacy.html" target="_blank" rel="noopener" data-i18n="privacy.link">隐私</a><span id="versionTag" data-i18n="app.version">v1.1</span></span>
+  </footer>
+</section>
+
+<section id="hud" class="hud hidden">
+  <div class="hud-score glass">
+    <span class="hud-label" data-i18n="hud.score">得分</span>
+    <b id="score">0</b>
+    <div class="hud-sub">
+      <span><i class="coin-dot"></i><b id="coins">0</b></span>
+      <span><b id="dist">0</b><span data-i18n="hud.metres">米</span></span>
+    </div>
   </div>
-  <button id="mute" title="mute">♪</button>
-</div>
+  <div id="combo" class="combo glass">
+    <svg viewBox="0 0 44 44" aria-hidden="true">
+      <circle cx="22" cy="22" r="18" class="combo-track"/>
+      <circle id="comboFill" cx="22" cy="22" r="18" class="combo-fill"/>
+    </svg>
+    <div><span data-i18n="hud.combo">连击</span><b id="comboMult">×1</b></div>
+  </div>
+  <div class="hud-actions">
+    <div id="dailyChip" class="daily-chip hidden" data-i18n="hud.daily">今日挑战</div>
+    <button id="pauseBtn" class="icon-btn" aria-label="暂停" data-i18n-aria="a11y.pause">Ⅱ</button>
+    <button id="hudMuteBtn" class="icon-btn" aria-label="静音" data-i18n-aria="a11y.mute">♪</button>
+  </div>
+  <div id="bestGap" class="best-gap glass hidden">
+    <span id="bestGapText"></span>
+    <div class="bar"><i id="bestGapFill"></i></div>
+  </div>
+  <div id="jumpHint" class="jump-hint glass hidden" aria-live="polite">
+    <kbd class="hint-key">SPACE</kbd>
+    <span class="hint-desktop" data-i18n="hint.jump">跳跃</span>
+    <span class="hint-touch" data-i18n="hint.tap">点按跳跃</span>
+  </div>
+</section>
 
-<div id="touch" class="touch-ui">
+<section id="over" class="screen overlay hidden">
+  <div class="panel over-panel glass">
+    <p class="kicker" data-i18n="over.kicker">本局结束</p>
+    <h2 id="overDelta" class="delta">差 0 分</h2>
+    <div class="over-stats">
+      <div><span data-i18n="over.score">得分</span><b id="overScore">0</b></div>
+      <div><span data-i18n="over.distance">距离</span><b id="overDist">0</b></div>
+      <div><span data-i18n="over.coins">金币</span><b id="overCoins">0</b></div>
+      <div><span data-i18n="over.combo">最高连击</span><b id="overCombo">0</b></div>
+    </div>
+    <div class="best-line">
+      <div class="bar"><i id="overBar"></i></div>
+      <div class="best-labels"><span id="overBest">历史最高 0</span><span id="overClose">0</span></div>
+    </div>
+    <p id="overUnlock" class="unlock-hint"></p>
+    <div class="over-missions">
+      <p class="mini-label" data-i18n="over.missions">今日任务</p>
+      <ul id="overMissions"></ul>
+    </div>
+    <div class="cta-row">
+      <button id="retryBtn" class="btn primary"><span data-i18n="over.retry">再来一次</span><span class="arrow">→</span></button>
+      <button id="menuBtn2" class="btn ghost"><span data-i18n="over.menu">回到主页</span></button>
+    </div>
+  </div>
+</section>
+
+<section id="pause" class="screen overlay hidden">
+  <div class="panel pause-panel glass">
+    <p class="kicker" data-i18n="pause.title">暂停</p>
+    <div class="pause-buttons">
+      <button id="resumeBtn" class="btn primary"><span data-i18n="pause.resume">继续</span></button>
+      <button id="pauseRestart" class="btn ghost"><span data-i18n="pause.restart">重新开始</span></button>
+      <button id="pauseSettings" class="btn ghost"><span data-i18n="settings.title">设置</span></button>
+      <button id="pauseMenu" class="btn ghost"><span data-i18n="pause.menu">回到主页</span></button>
+    </div>
+  </div>
+</section>
+
+<aside id="settings" class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <h2 data-i18n="settings.title">设置</h2>
+    <button id="closeSettings" class="icon-btn" aria-label="关闭" data-i18n-aria="common.close">✕</button>
+  </div>
+  <div class="drawer-body">
+    <section class="setting-block">
+      <label data-i18n="settings.quality">画质</label>
+      <div id="qualitySeg" class="seg" role="group">
+        <button data-quality="auto" data-i18n="settings.auto">自动</button>
+        <button data-quality="high" data-i18n="settings.high">高</button>
+        <button data-quality="mid" data-i18n="settings.mid">中</button>
+        <button data-quality="low" data-i18n="settings.low">低</button>
+      </div>
+    </section>
+    <section class="setting-block toggles">
+      <button id="lowStim" class="switch-row" role="switch" aria-checked="false"><span data-i18n="settings.lowStim">低刺激</span><i class="switch"></i></button>
+      <button id="reduceMotion" class="switch-row" role="switch" aria-checked="false"><span data-i18n="settings.reduceMotion">减少动态</span><i class="switch"></i></button>
+      <button id="soundToggle" class="switch-row" role="switch" aria-checked="true"><span data-i18n="settings.sound">音效</span><i class="switch"></i></button>
+      <button id="musicToggle" class="switch-row" role="switch" aria-checked="true"><span data-i18n="settings.music">音乐</span><i class="switch"></i></button>
+      <button id="statsToggle" class="switch-row" role="switch" aria-checked="true"><span data-i18n="settings.stats">本地统计</span><i class="switch"></i></button>
+    </section>
+    <section class="setting-block">
+      <label data-i18n="settings.language">语言</label>
+      <div id="localeSeg" class="seg" role="group">
+        <button data-locale="zh-CN">中文</button>
+        <button data-locale="en">EN</button>
+      </div>
+    </section>
+    <button id="resetBtn" class="btn danger" data-i18n="settings.reset">清除存档</button>
+    <p class="drawer-note">LOCAL SAVE · SKYRUNNER v1.1</p>
+  </div>
+</aside>
+
+<section id="locker" class="screen modal" aria-hidden="true">
+  <div class="panel locker-panel glass">
+    <header class="locker-head">
+      <h2 data-i18n="locker.title">衣柜</h2>
+      <div id="lockerCoins" class="locker-coins">0 金币</div>
+      <button id="closeLocker" class="icon-btn" aria-label="关闭" data-i18n-aria="common.close">✕</button>
+    </header>
+    <h3 data-i18n="locker.characters">角色</h3>
+    <div id="lockerChars" class="locker-grid"></div>
+    <h3 data-i18n="locker.trails">拖尾</h3>
+    <div id="lockerTrails" class="locker-grid"></div>
+  </div>
+</section>
+
+<div id="touch" class="touch-ui hidden">
   <div id="stick" class="stick"><div id="knob" class="knob"></div></div>
-  <div id="jump" class="jump">JUMP</div>
+  <button id="jump" class="jump" aria-label="跳跃" data-i18n-aria="a11y.jump">JUMP</button>
 </div>
 
-<div class="overlay" id="start">
-  <div class="tag">endless 3D platformer</div>
-  <h1>SKYRUNNER</h1>
-  <p class="sub2">踩着彩色浮空平台一路向前，收集金币、踩扁巡逻无人机。掉下去就结束——看你能跑多远。</p>
-  <div class="keys">
-    <kbd>WASD / 方向键</kbd><kbd>空格 跳</kbd><kbd>拖拽 转视角</kbd><kbd>Shift 冲刺</kbd>
-  </div>
-  <div class="best">最高分 <b id="bestStart">0</b></div>
-  <button class="primary" id="play">开始</button>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="err" class="err"></div>
+<div id="loading" class="loading">
+  <div class="loading-mark">SR</div>
+  <div class="loading-bar"><i></i></div>
 </div>
-
-<div class="overlay hidden" id="over">
-  <div class="tag" id="overTag">game over</div>
-  <h1 id="overTitle">结束</h1>
-  <p class="sub2" id="overStats"></p>
-  <div class="best">最高分 <b id="bestOver">0</b></div>
-  <button class="primary" id="again">再来一次</button>
-</div>
-
-<div class="fps" id="fps"></div>
-<div id="err"></div>
 
 <script type="module" src="./src/main.js"></script>
 </body>
