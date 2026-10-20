@@ -10,6 +10,7 @@ import { Player } from './player.js';
 import { CameraRig } from './camera.js';
 import { Combo, scoreOf } from './score.js';
 import { speedAt } from './config.js';
+import { World } from './world.js';
 
 function fatal(message) {
   if (typeof window.showFatal === 'function') window.showFatal(message);
@@ -138,44 +139,8 @@ for (let i = 0; i < 5; i++) {
   menuWorld.add(g);
 }
 
-/* ---------------- arena (replaced by World in Task 6) ---------------- */
-const arena = new THREE.Group();
-arena.visible = false;
-scene.add(arena);
-const colliders = [];
-const platforms = [];
-function addArenaPlatform(z, w, d, y, color) {
-  const g = makePlatform(w, d, color);
-  g.position.set(0, y, z);
-  arena.add(g);
-  const collider = { min: { x: -w / 2, y: y - 1, z: z - d / 2 }, max: { x: w / 2, y, z: z + d / 2 } };
-  colliders.push(collider);
-  platforms.push({ z, w, d, y, frontEdge: z + d / 2, collider, group: g });
-}
-addArenaPlatform(0, 14, 22, 0, PALETTE[0]);
-addArenaPlatform(18, 9, 9, 0, PALETTE[1]);
-addArenaPlatform(30, 8, 8, 0, PALETTE[2]);
-
-const world = {
-  colliders,
-  platforms,
-  groundYAt(x, z) {
-    let best = -Infinity;
-    for (const c of colliders) {
-      if (x > c.min.x - 0.25 && x < c.max.x + 0.25 && z > c.min.z - 0.25 && z < c.max.z + 0.25) {
-        if (c.max.y > best) best = c.max.y;
-      }
-    }
-    return best;
-  },
-  platformAt(x, z) {
-    for (const p of platforms) {
-      if (x > p.collider.min.x - 0.2 && x < p.collider.max.x + 0.2 &&
-          z > p.collider.min.z - 0.2 && z < p.collider.max.z + 0.2) return p;
-    }
-    return null;
-  },
-};
+/* ---------------- endless world ---------------- */
+const world = new World(scene, { skyUniforms, sun, hemi, scene });
 
 /* ---------------- player ---------------- */
 const player = new Player(scene);
@@ -237,6 +202,8 @@ const state = {
   time: 0,
   edges: 0,
   stomps: 0,
+  milestone: 0,
+  newBest: false,
 };
 
 const combo = new Combo();
@@ -336,13 +303,15 @@ function startRun(seed, opts = {}) {
   state.time = 0;
   state.edges = 0;
   state.stomps = 0;
+  state.milestone = 0;
+  state.newBest = false;
   state.best = save.best;
   combo.reset();
   player.reset({ x: 0, y: CFG.halfH + 0.05, z: 0 });
   player.setCharacter(currentCharacter());
   player.rig.visible = true;
   menuWorld.visible = false;
-  arena.visible = true;
+  world.reset(state.seed);
   cameraRig.reset(player);
   ui.showPlay(save, { daily: state.daily });
   input.clear();
@@ -380,7 +349,7 @@ function toMenu() {
   ui.showMenu(save);
   player.rig.visible = false;
   player.blob.visible = false;
-  arena.visible = false;
+  world.setVisible(false);
   menuWorld.visible = true;
 }
 
@@ -419,6 +388,43 @@ function handleEvents(events) {
       state.maxCombo = Math.max(state.maxCombo, combo.streak);
       cameraRig.shake(0.12);
       ui.toast('toast.edge', {}, 'mint');
+    } else if (ev.type === 'coin') {
+      state.coins += 1;
+      state.coinPoints += CFG.coinValue * combo.mult;
+      combo.add();
+      state.maxCombo = Math.max(state.maxCombo, combo.streak);
+      cameraRig.shake(0.02);
+    } else if (ev.type === 'stomp') {
+      state.stomps += 1;
+      state.coins += 2;
+      state.coinPoints += 2 * CFG.coinValue * combo.mult;
+      combo.add();
+      state.maxCombo = Math.max(state.maxCombo, combo.streak);
+      cameraRig.shake(0.13);
+    } else if (ev.type === 'shield') {
+      player.grantShield();
+      ui.toast('toast.shield', {}, 'mint');
+    } else if (ev.type === 'graze') {
+      state.trick += CFG.grazeBonus;
+      combo.add();
+      state.maxCombo = Math.max(state.maxCombo, combo.streak);
+      ui.toast('toast.graze', {}, 'mint');
+      cameraRig.shake(0.06);
+    } else if (ev.type === 'hit') {
+      const result = player.hit();
+      player.vel.x *= -0.4;
+      player.vel.z -= 3;
+      player.vel.y = Math.max(player.vel.y, 7);
+      if (result === 'shield') {
+        cameraRig.shake(0.2);
+        ui.toast('toast.near', {}, 'gold');
+      } else if (result === 'hit') {
+        combo.break();
+        cameraRig.shake(0.26);
+        ui.toast('toast.near', {}, 'gold');
+      }
+    } else if (ev.type === 'biome') {
+      ui.toast('toast.biome', { b: t('biome.' + BIOMES[ev.index].id) });
     } else if (ev.type === 'fall') {
       finishRun();
       return;
@@ -435,13 +441,24 @@ function fixed(dt) {
   const jump = input.consumeJump();
   const events = [];
   player.update(dt, { steer: input.state.steer, jumpPressed: jump, jumpHeld: input.state.jumpHeld }, world, events);
+  world.fixedUpdate(dt, player, events);
   handleEvents(events);
   if (state.mode !== 'play') return;
   combo.update(dt);
   state.time += dt;
   state.distance = Math.max(state.distance, player.pos.z);
+  const milestone = Math.floor(state.distance / 100);
+  if (milestone > state.milestone && milestone > 0) {
+    state.milestone = milestone;
+    ui.toast('toast.milestone', { n: milestone * 100 });
+  }
   state.maxCombo = Math.max(state.maxCombo, combo.streak);
   state.score = scoreOf(state.distance, state.coinPoints, state.trick);
+  if (!state.newBest && state.best > 0 && state.score > state.best) {
+    state.newBest = true;
+    ui.toast('toast.record', {}, 'gold');
+    cameraRig.shake(0.16);
+  }
 }
 
 function updateHud(dt) {
@@ -488,10 +505,12 @@ function tick(now) {
     if (steps >= 8) acc = 0;
     const alpha = Math.min(1, acc / CFG.step);
     player.setVisual(alpha, state.time, player.speed, world, frameDt);
+    world.render(frameDt, state.time, alpha, player);
     cameraRig.update(frameDt, player, { speed: player.speed });
     updateHud(frameDt);
   } else if (state.mode === 'paused' || state.mode === 'over') {
     player.setVisual(1, state.time, 0, world, frameDt);
+    world.render(frameDt, state.time, 1, player);
     cameraRig.update(frameDt, player, { speed: 0 });
   } else {
     menuCamera(frameDt);
