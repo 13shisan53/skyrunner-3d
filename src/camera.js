@@ -15,6 +15,8 @@ export class CameraRig {
     this.look = new THREE.Vector3();
     this.target = new THREE.Vector3();
     this.initialized = false;
+    this.lowStim = false;
+    this.reduceMotion = false;
   }
 
   isPortrait() {
@@ -26,7 +28,7 @@ export class CameraRig {
     this.yawOffset = 0;
     this.hold = 0;
     this.pitch = this.isPortrait() ? 0.38 : 0.30;
-    this.distance = this.isPortrait() ? 9.6 : 7.6;
+    this.distance = this.isPortrait() ? 9.6 : 7.1;
     this.fov = 58;
     this.shakeAmt = 0;
     this.compute(player, 1);
@@ -45,7 +47,7 @@ export class CameraRig {
 
   compute(player, dt) {
     const portrait = this.isPortrait();
-    this.distance = damp(this.distance, portrait ? 9.6 : 7.6, 4, dt);
+    this.distance = damp(this.distance, portrait ? 9.6 : 7.1, 4, dt);
     const targetY = portrait ? 0.55 : 0.95;
     this.target.set(player.pos.x, player.pos.y + targetY, player.pos.z);
     const cp = Math.cos(this.pitch);
@@ -75,7 +77,7 @@ export class CameraRig {
     }
 
     const speed = clamp((opts.speed || 0) / CFG.speedMax, 0, 1);
-    const targetFov = 58 + speed * 8;
+    const targetFov = this.reduceMotion ? 58 : 58 + speed * 8;
     this.fov = damp(this.fov, targetFov, 3, dt);
     this.camera.fov = this.fov;
     this.camera.updateProjectionMatrix();
@@ -93,6 +95,7 @@ export class CameraRig {
   }
 
   shake(amount) {
+    if (this.lowStim) return;
     this.shakeAmt = Math.min(0.5, Math.max(this.shakeAmt, amount));
   }
 }

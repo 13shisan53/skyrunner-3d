@@ -132,9 +132,9 @@ export const MISSIONS = Object.freeze([
 ]);
 
 export const QUALITY_TIERS = Object.freeze({
-  high: { dprCap: 2, shadow: 1024, bloom: true, clouds: 54, particles: 240, antialias: true },
-  mid: { dprCap: 1.25, shadow: 512, bloom: true, clouds: 36, particles: 140, antialias: true },
-  low: { dprCap: 1, shadow: 0, bloom: false, clouds: 20, particles: 80, antialias: false },
+  high: { dprCap: 2, shadow: 512, bloom: true, clouds: 40, particles: 180, antialias: true },
+  mid: { dprCap: 1.25, shadow: 512, bloom: true, clouds: 30, particles: 120, antialias: true },
+  low: { dprCap: 1, shadow: 0, bloom: false, clouds: 18, particles: 70, antialias: false },
 });
 
 export const STORAGE_KEY = 'skyrunner.save.v2';

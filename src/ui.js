@@ -201,13 +201,15 @@ export class UI {
     this.el.overCoins.textContent = String(result.coins);
     this.el.overCombo.textContent = String(result.maxCombo);
     this.el.overBest.textContent = `${t('over.best')} ${save.best}`;
-    this.el.overClose.textContent = `${Math.floor(result.distance)}m`;
     const pct = save.best > 0 ? Math.min(100, (result.score / save.best) * 100) : 100;
+    this.el.overClose.textContent = `${Math.round(pct)}%`;
     this.el.overBar.style.width = `${pct}%`;
 
     const next = nextUnlock(save);
     this.el.overUnlock.textContent = next
-      ? t('over.unlock', { n: next.missing, name: t(next.item.nameKey) })
+      ? (next.missing > 0
+        ? t('over.unlock', { n: next.missing, name: t(next.item.nameKey) })
+        : t('over.unlockReady', { name: t(next.item.nameKey) }))
       : '';
     this.renderMissions(save.missions ? save.missions.items : []);
   }
@@ -221,7 +223,7 @@ export class UI {
       return `<li class="mission-row ${item.done ? 'done' : ''}">
         <span>${esc(t(`mission.${def.id}`))}</span>
         <b>${item.done ? esc(t('mission.done')) : `${item.progress}/${def.target}`}</b>
-        <div class="bar"><i style="width:${pct}%"></i></div>
+        <span class="mission-track"><i style="width:${pct}%"></i></span>
       </li>`;
     });
     this.el.overMissions.innerHTML = rows.join('');
@@ -341,7 +343,7 @@ export class UI {
         const worn = save.worn[kind] === item.id;
         const color = kind === 'char' ? item.color : item.color;
         const label = t(item.nameKey);
-        const price = owned ? (worn ? t('locker.equipped') : '') : `${t('locker.unlock')} · ${item.cost}`;
+        const price = owned ? (worn ? t('locker.equipped') : t('locker.equip')) : `${t('locker.unlock')} · ${item.cost}`;
         return `<button class="locker-card ${worn ? 'worn' : ''}" data-buy="${esc(item.id)}" data-kind="${kind}">
           <span class="locker-orb" style="background:radial-gradient(circle at 34% 30%, #ffffff, #${color.toString(16).padStart(6, '0')} 62%, #${color.toString(16).padStart(6, '0')})">${item.id.startsWith('char.') ? '●' : '✦'}</span>
           <span class="locker-name">${esc(label)}</span>

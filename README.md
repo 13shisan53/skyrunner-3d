@@ -1,85 +1,100 @@
-# SKYRUNNER
+# SKYRUNNER v1.1
 
-An endless 3D platformer that runs in the browser — desktop and phone. No build step, no engine, no external art assets: one `index.html`, one ES module, and a vendored copy of three.js.
+An endless 3D platformer that runs in the browser — desktop and phone. One thumb, one verb: **jump**. Auto-run, steer, collect, stomp, don't fall.
 
-**Play:** https://13shisan53.github.io/skyrunner-3d/
+**Play locally**
 
-![gameplay](docs/desktop-mid.png)
+```bash
+python -m http.server 8123 --bind 127.0.0.1
+# open http://127.0.0.1:8123/
+```
 
-![mobile](docs/mobile-play.png)
+No build step. No runtime network calls. No accounts, ads, or backend.
+
+![menu](docs/shots/menu.png)
+![gameplay](docs/shots/play-dusk.png)
+![mobile](docs/shots/mobile-play.png)
+
+## What changed in v1.1
+
+- **Auto-run**: the course always moves forward; the player only jumps and steers. A/D or ←/→ steer, Space jumps (hold for height), Esc pauses, R restarts, M mutes.
+- **Cloud archipelago**: gradient sky with sun, layered cloud fields, a cloud sea, distant peaks, biome colour scripts (dawn → noon → dusk → night) and floating platform art with shape emblems for colour-blind play.
+- **"Almost" loop**: a live record tracker, edge saves, drone grazes, a one-hit shield, combo multipliers, a slow-motion death, and a results screen whose headline is how close you were.
+- **Meta game**: persistent coins, 4 characters, 4 trails, 3 daily missions, a seeded daily challenge, best score and last-10-runs sparkline.
+- **Performance**: adaptive high/mid/low tiers (DPR, shadows, clouds, particles), a fixed 120 Hz simulation with render interpolation, cached geometry/materials and pooled particles.
+- **Accessibility**: low-stim mode, reduced motion, keyboard-only play, visible focus, no >3 Hz flashing, shape-marked platforms.
+- **i18n**: complete `zh-CN` and `en` catalogues in `src/strings.js`.
+- **Privacy**: local-only stats with an opt-out switch and `privacy.html`; no network egress.
 
 ## Controls
 
-**Desktop**
-
 | Input | Action |
 | --- | --- |
-| `W A S D` / arrows | move (camera relative) |
-| `Space` | jump — hold for height, tap for a short hop |
-| Mouse drag | orbit the camera |
-| `Shift` | sprint |
+| `A` / `D`, `←` / `→` | steer (world X; camera orbit is cosmetic) |
+| `Space` | jump — hold for height, tap for a hop |
+| `Esc` | pause |
 | `R` | restart |
 | `M` | mute |
-
-**Phone / tablet** — a virtual stick appears bottom-left, a jump button bottom-right, and dragging anywhere else on the screen orbits the camera. The layout respects safe-area insets on notched devices.
-
-## How it plays
-
-Endless: the course is generated ahead of you and recycled behind you, so there is no finish line — only the next platform.
-
-- **Score** = `10 × metres + 100 × coins`. Stomping a drone is worth 2 coins.
-- **Difficulty ramps** with distance: platforms shrink from ~9 m to ~4 m, gaps widen from 2 m to 4.3 m.
-- Falling below the course ends the run; your best score is kept in `localStorage`.
-- Drones patrol on three axes. Landing on top stomps them; hitting one from the side costs coins and knocks you back.
-
-## What's in the engine
-
-- **Momentum movement** — separate ground/air acceleration, ground friction, sprint multiplier.
-- **Forgiving jump** — 0.11 s coyote time, 0.12 s jump buffer, variable height, stronger gravity while falling.
-- **Kinematic AABB collision** resolved per axis, vertical first (resolving the ground before horizontal sweeps is what stops the character being shoved off ledges).
-- **Procedural world** — platforms, coins and drones are generated in segments and disposed once behind the camera; geometry and materials are cached.
-- **Cartoon character** — rounded-box body, sphere head, eyes, cheeks, antenna and swinging limbs, all built from primitives at runtime.
-- **Rendering** — PCF soft shadows, ACES filmic tone mapping, gradient skydome, emissive materials through UnrealBloom, projected contact shadow.
-- **Audio** — every sound effect and the background music are synthesised live with WebAudio. There are no audio files in the repo.
-
-## Music
-
-The background loop is an original piece written for this project: a D-major pentatonic piano arpeggio over a four-chord pad progression (Dmaj9 – Bm9 – Gmaj9 – A9), with bass and hi-hats, all scheduled from code at 88 BPM.
-
-It is **not** a cover or a reproduction of any existing song. If you want a specific track in the game, the honest way to do it is to licence the recording and load it as an audio file — I can wire that up, but I can't ship someone else's composition as generated code.
+| Mouse/touch drag | orbit the camera (clamped, auto-recentres) |
+| Touch | left stick steers, right button jumps, drag elsewhere to look |
 
 ## Structure
 
 ```
-index.html                     shell, HUD, overlays, touch controls, import map
-src/main.js                    the whole game
-vendor/three.module.js         three.js r160 (vendored, no CDN at runtime)
-vendor/addons/...              postprocessing passes + RoundedBoxGeometry
-test/cdp-test.mjs              headless functional test (desktop + mobile emulation)
-test/shot.mjs                  screenshot harness
-```
-
-## Run locally
-
-ES modules need a real HTTP origin — opening the file directly will not work.
-
-```bash
-python -m http.server 8123
-# then open http://127.0.0.1:8123/
+index.html                  shell, HUD, overlays, settings, locker, import map
+styles.css                  design system and responsive layout
+src/main.js                 boot, state machine, fixed loop, wiring
+src/config.js               all tunables, biomes, quality tiers, unlocks
+src/strings.js              zh-CN / en copy
+src/gen.js                  seeded course generator + fairness rules
+src/physics.js              kinematic AABB, per-axis resolution, edge forgiveness
+src/player.js               auto-run movement, jump feel, procedural character
+src/world.js                endless course, coins, drones, shields, scenery
+src/camera.js               spring arm, FOV, shake, menu orbit
+src/fx.js                   pooled particles, trail ribbon, speed lines
+src/audio.js                procedural SFX and layered music
+src/quality.js              frame-time judge
+src/meta.js                 save, unlocks, missions, daily seed
+src/ui.js                   menu, HUD, results, settings, locker
+src/analytics.js            local-only event log
+test/                       unit, E2E, performance, screenshots
+docs/shots/                 current screenshots
+docs/superpowers/           design doc and implementation plan
 ```
 
 ## Tests
 
-The functional test drives the running game over the Chrome DevTools Protocol and asserts the things that break silently: movement, staying on the platform, jumping, coin pickup, endless generation, the game-over state, restart, and — in a second pass with mobile emulation — that the touch UI appears, the joystick moves the character and the jump button works. It also fails on any uncaught exception or console error.
+Requirements: Python 3.9+, Chrome, Node 24+.
 
 ```bash
-# terminal 1
-python -m http.server 8123
-# terminal 2 — Chrome started with --remote-debugging-port=9333
-node test/cdp-test.mjs
+npm test                 # unit + E2E (starts server and headless Chrome)
+npm run test:perf        # E2E + GPU performance run
+npm run shots            # regenerate docs/shots
 ```
+
+The harness starts `python -m http.server 8123` and headless Chrome on ports 9333/9335. Unit tests are pure Node (`node:test`). E2E drives the real game over CDP; it asserts auto-run, steering, jump height, coins, stomps, shields, edge saves, pause/blur, restart, settings persistence, unlocks, daily seed, mobile touch controls, and zero uncaught exceptions.
+
+### Measured performance
+
+AMD Radeon 610M · Chrome · 1280×720 · DPR 1 · headless GPU (`--use-angle=d3d11`), high tier:
+
+| Metric | Result |
+| --- | --- |
+| Average | **~80–110 fps** |
+| p50 / p95 / p99 | **~8–11 / ~17–22 / ~22–24 ms** |
+| Long frames (>50 ms) | **0** |
+| Draw calls / triangles | **~93 / ~33k** |
+| JS heap | **~34–40 MB** |
+
+Soft-rendered Chrome (SwiftShader) is slower; the adaptive quality manager drops DPR, shadows, clouds and particles to keep it playable.
+
+## Art and audio
+
+Everything is generated in code: rounded-box geometry, procedural character, canvas textures, point-cloud clouds, instanced peaks, WebAudio synthesis. The music is an original 92 BPM Dmaj9–Bm9–Gmaj9–A9 loop with pad, arpeggio, bass and hats; layers open up with speed and combo. No audio files are included.
 
 ## Notes
 
-- Everything is original: geometry is built from primitives at runtime, textures are generated on canvas, sounds and music are synthesised. No third-party characters, models or audio files are included.
-- three.js is MIT licensed and vendored in `vendor/`.
+- three.js r160 is vendored under `vendor/` (MIT).
+- Save key: `skyrunner.save.v2`; analytics key: `skyrunner.analytics.v1`.
+- The game still works if `localStorage` is unavailable; it simply does not persist.
+- Privacy details: [privacy.html](privacy.html).

@@ -1,5 +1,6 @@
 node_modules/
 .chrome-*/
+.edge-*/
 .chrome-profile/
 .chrome-gpu/
 .chrome-test/

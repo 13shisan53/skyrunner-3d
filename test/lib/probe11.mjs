@@ -1,0 +1,15 @@
+import { connect, navigate, waitFor } from './cdp.mjs';
+import fs from 'node:fs/promises';
+const c = await connect(9333);
+await c.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
+await navigate(c, `http://127.0.0.1:8123/?dbg=${Date.now()}`);
+await waitFor(async () => c.evaluate(`document.body.dataset.ready === '1'`), 20000);
+await c.evaluate(`document.getElementById('playBtn').click()`);
+await new Promise((r) => setTimeout(r, 650));
+await c.evaluate(`window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }))`);
+await new Promise((r) => setTimeout(r, 300));
+console.log(await c.evaluate(`({ mode: __skyrunner.state.mode, over: !document.getElementById('over').classList.contains('hidden'), z: __skyrunner.player.pos.z, bloom: __skyrunner.post.bloom.enabled })`));
+const res = await c.send('Page.captureScreenshot', { format: 'png' });
+await fs.writeFile('docs/shots/debug-paused-bloom.png', Buffer.from(res.result.data, 'base64'));
+console.log('wrote');
+c.close();

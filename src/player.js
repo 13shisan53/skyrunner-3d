@@ -50,7 +50,7 @@ export class Player {
     const skin = new THREE.MeshStandardMaterial({ color: 0xfff4e2, roughness: 0.68 });
     const suit = new THREE.MeshStandardMaterial({ color: 0x2fbfa6, roughness: 0.45 });
     const dark = new THREE.MeshStandardMaterial({ color: 0x1d8d7c, roughness: 0.5 });
-    const scarf = new THREE.MeshStandardMaterial({ color: 0xff7a8a, roughness: 0.72, side: THREE.DoubleSide });
+    const scarf = new THREE.MeshBasicMaterial({ color: 0xff7a8a, side: THREE.DoubleSide });
     const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
     const eyeBlack = new THREE.MeshStandardMaterial({ color: 0x1a1f2b, roughness: 0.25 });
     const cheek = new THREE.MeshStandardMaterial({ color: 0xff9db0, roughness: 0.7 });
@@ -162,6 +162,14 @@ export class Player {
     this.crown.visible = false;
     this.rig.add(this.crown);
 
+    this.shieldMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.85, 18, 12),
+      new THREE.MeshBasicMaterial({ color: 0x8dfff0, transparent: true, opacity: 0.18, depthWrite: false, wireframe: false })
+    );
+    this.shieldMesh.position.y = 0.05;
+    this.shieldMesh.visible = false;
+    this.rig.add(this.shieldMesh);
+
     this.setCharacter({ color: 0x2fbfa6, suit: 0x1d8d7c, scarf: 0xff7a8a, accessory: 'antenna' });
   }
 
@@ -208,7 +216,6 @@ export class Player {
 
   grantShield() {
     this.shield = true;
-    this.invuln = 0.2;
   }
 
   hit() {
@@ -331,6 +338,12 @@ export class Player {
     }
 
     this.mat.bulb.emissiveIntensity = 1.3 + Math.sin(time * 5) * 0.35;
+    this.shieldMesh.visible = !!this.shield;
+    if (this.shield) {
+      const pulse = 0.16 + Math.sin(time * 6) * 0.05;
+      this.shieldMesh.material.opacity = pulse;
+      this.shieldMesh.scale.setScalar(1 + Math.sin(time * 4) * 0.03);
+    }
     this.head.position.y = 0.54 + Math.sin(time * 3) * 0.012;
     this.blinkOffset += 0;
     const phase = (time + this.blinkOffset) % 4.4;

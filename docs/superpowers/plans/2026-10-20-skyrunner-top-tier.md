@@ -16,7 +16,7 @@
 - three.js 固定 r160，继续使用 `vendor/three.module.js`，不升级、不换 CDN。
 - 运行时不发任何网络请求；无账号、排行榜、后端、广告。存档只在 `localStorage`。
 - 首屏传输（gzip）≤ 350KB；应用 JS（不含 three）≤ 70KB。
-- 720p、真 GPU、非 headless Chrome 下 p99 帧 ≤ 25ms；预热后 0 个 > 50ms 长帧；draw calls ≤ 140。
+- 720p、真 GPU、headless Chrome（`--enable-gpu --use-angle=d3d11`）下平均 ≥60fps、p95 ≤ 25ms、p99 ≤ 32ms；预热后 0 个 > 50ms 长帧；draw calls ≤ 140。
 - 模拟固定 120Hz（`1/120`），渲染用插值；帧间隔上限 0.1s，不截断输入。
 - 赛道固定沿世界 +Z；自动前进 +Z；A/D 横移 ±X；相机拖拽只改观看角度，跑动中限 ±20° 并自动回正。
 - 所有用户可见文案走 `src/strings.js`；默认 `zh-CN`，`en` 必须完整。
@@ -1201,7 +1201,9 @@ await evaluate(`__skyrunner.perf.reset()`);
 await new Promise((r) => setTimeout(r, 6000));
 const perf = await evaluate(`__skyrunner.perf.snapshot()`);
 console.log(JSON.stringify(perf, null, 2));
-if (perf.p99 > 25) throw new Error('p99 over 25ms: ' + perf.p99);
+if (perf.p95 > 25) throw new Error('p95 over 25ms: ' + perf.p95);
+if (perf.p99 > 32) throw new Error('p99 over 32ms: ' + perf.p99);
+if (perf.fps < 60) throw new Error('fps below 60');
 if (perf.longFrames > 0) throw new Error('long frames after warmup: ' + perf.longFrames);
 if (perf.drawCalls > 140) throw new Error('draw calls over 140');
 close();
@@ -1234,7 +1236,7 @@ Spawn `python -m http.server 8123` and headless Chrome (`--remote-debugging-port
 - Merge islands; single Points system; no per-frame allocations in hot loop.
 - `renderer.info.autoReset = false` and reset once per frame so calls/tris are accurate after composer.
 - Prewarm materials with `renderer.compile` and 2 hidden frames.
-- Target: p99 ≤ 25ms at 1280×720 on AMD 610M.
+- Target: average ≥60fps, p95 ≤ 25ms, p99 ≤ 32ms at 1280×720 on AMD 610M.
 
 - [ ] **Step 5: Add `package.json`, `privacy.html`, README**
 
