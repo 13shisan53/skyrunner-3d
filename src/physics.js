@@ -28,9 +28,9 @@ export function stepBody(body, colliders, dt, opts = {}) {
 
   const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
   const sub = dt / steps;
+  let grounded = false;
 
   for (let s = 0; s < steps; s++) {
-    body.grounded = false;
     const vyBefore = body.vel.y;
 
     body.pos.y += body.vel.y * sub;
@@ -38,11 +38,13 @@ export function stepBody(body, colliders, dt, opts = {}) {
     for (let i = 0; i < colliders.length; i++) {
       const c = colliders[i];
       if (!overlapsXZ(box, c, forgiving)) continue;
+      if (!(box.max.y > c.min.y && box.min.y < c.max.y)) continue;
       if (body.vel.y <= 0 && box.min.y < c.max.y) {
         body.pos.y = c.max.y + halfH + 0.001;
         if (-vyBefore > result.impact) result.impact = -vyBefore;
         body.vel.y = 0;
         body.grounded = true;
+        grounded = true;
         result.landed = true;
         box = aabbOf(body.pos, radius, halfH);
       } else if (body.vel.y > 0 && box.max.y > c.min.y) {
@@ -80,5 +82,6 @@ export function stepBody(body, colliders, dt, opts = {}) {
     }
   }
 
+  body.grounded = grounded;
   return result;
 }

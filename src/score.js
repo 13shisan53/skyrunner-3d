@@ -42,4 +42,8 @@ export class Combo {
     this.idle = 0;
     this.decayAcc = 0;
   }
+
+  reset() {
+    this.break();
+  }
 }

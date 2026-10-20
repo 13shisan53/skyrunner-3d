@@ -122,7 +122,7 @@ export class UI {
     this.applyStatic();
     const loc = $('localeSeg');
     if (loc) for (const b of all('[data-locale]', loc)) b.classList.toggle('active', b.dataset.locale === locale);
-    if (this.save) this.showMenu(this.save);
+    if (this.save && !this.el.menu.classList.contains('hidden')) this.fillMenu(this.save);
   }
 
   fillMenu(save) {
