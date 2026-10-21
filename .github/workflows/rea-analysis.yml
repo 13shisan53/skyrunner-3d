@@ -1,8 +1,10 @@
 # REA (Reverse Engineer Anything) — CI reverse-engineering scan
 # Source: https://github.com/morluto/rea  (MIT)
+#
 # REA statically analyses the JavaScript application graph of this repo:
-# modules, imports/exports, feature traces and coverage. No native analysis
-# engine is required for this lane, so it runs headless on ubuntu-latest.
+# modules, import/export relationships, feature traces and coverage. The
+# static JS lane needs no native analysis engine (no Hopper/Ghidra/IDA), so it
+# runs fully headless on ubuntu-latest with no licence or API key.
 name: REA analysis
 
 on:
@@ -12,6 +14,11 @@ on:
         description: "Sub-path inside the repo to analyse (default: whole repo)"
         required: false
         default: "."
+      upload_evidence:
+        description: "Also upload the full Evidence JSON (can be tens of MB)"
+        required: false
+        default: false
+        type: boolean
   pull_request:
     paths:
       - "index.html"
@@ -47,19 +54,28 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
 
       - name: Install REA
         run: npm install --global "rea-agents@${REA_VERSION}"
 
+      # `rea doctor` reports on every host prerequisite, including optional
+      # native analysis engines. A non-zero exit here means "something is not
+      # configured", not "the analysis lane is broken", so it must not fail the
+      # job or raise an error annotation.
       - name: Preflight check
-        continue-on-error: true
-        run: rea doctor --json > rea-doctor.json
+        run: |
+          code=0
+          rea doctor --json > rea-doctor.json || code=$?
+          if [ "$code" -ne 0 ]; then
+            echo "::notice::rea doctor reported incomplete prerequisites (exit $code). Native analysis engines are not required for the static JavaScript lane."
+          fi
+          exit 0
 
       - name: Stage application
         env:
@@ -73,7 +89,7 @@ jobs:
             TARGET="$RUNNER_TEMP/rea-app/$TARGET_PATH"
           fi
           echo "target=$TARGET" >> "$GITHUB_ENV"
-          find "$TARGET" -type f | wc -l
+          echo "files=$(find "$TARGET" -type f | wc -l)" >> "$GITHUB_ENV"
 
       - name: Analyse
         id: analyse
@@ -82,43 +98,62 @@ jobs:
           echo "evidence_bytes=$(wc -c < rea-out/evidence.json)" >> "$GITHUB_OUTPUT"
 
       - name: Project summary
-        id: view
-        continue-on-error: true
         run: |
-          jq -c '{source: {kind: "inline", evidence: .}, view: {kind: "summary"}}' \
-            rea-out/evidence.json > rea-out/view-request.json
-          rea inspect-analysis-view rea-out/view-request.json --json > rea-out/summary.json
+          if jq -c '{source: {kind: "inline", evidence: .}, view: {kind: "summary"}}' \
+               rea-out/evidence.json > "$RUNNER_TEMP/view-request.json"; then
+            if rea inspect-analysis-view "$RUNNER_TEMP/view-request.json" --json > rea-out/summary.json; then
+              echo "summary=ok" >> "$GITHUB_ENV"
+            else
+              echo "summary=projection-failed" >> "$GITHUB_ENV"
+              echo "::notice::REA summary projection failed; the raw Evidence is still valid."
+            fi
+          else
+            echo "summary=evidence-not-json" >> "$GITHUB_ENV"
+            echo "::notice::REA Evidence was not valid JSON; see the Analyse step log."
+          fi
+          rm -f "$RUNNER_TEMP/view-request.json"
 
       - name: Write run summary
-        if: always()
-        continue-on-error: true
         run: |
           {
             echo "## REA analysis"
             echo ""
             echo "| metric | value |"
             echo "| --- | --- |"
-            echo "| evidence bytes | $(wc -c < rea-out/evidence.json 2>/dev/null || echo 0) |"
-            echo "| analysed target | \`$target\` |"
             echo "| REA version | ${REA_VERSION} |"
+            echo "| analysed target | \`$target\` |"
+            echo "| files in target | ${files:-0} |"
+            echo "| Evidence bytes | $(wc -c < rea-out/evidence.json 2>/dev/null || echo 0) |"
+            echo "| summary projection | ${summary:-unavailable} |"
             echo ""
             if [ -s rea-out/summary.json ]; then
-              echo "### Summary projection"
+              echo "### Summary"
               echo '```json'
               head -c 20000 rea-out/summary.json
               echo '```'
             else
-              echo "_Summary projection unavailable — raw Evidence is attached as an artifact._"
+              echo "_Summary projection unavailable — see the job log and the doctor report artifact._"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload Evidence
+      - name: Upload summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: rea-evidence-${{ github.run_number }}
+          name: rea-summary-${{ github.run_number }}
           path: |
-            rea-out/
+            rea-out/summary.json
             rea-doctor.json
           if-no-files-found: warn
           retention-days: 14
+
+      # The full Evidence JSON can be tens of megabytes, so it is uploaded only
+      # when explicitly requested. The summary projection is the default output.
+      - name: Upload full Evidence
+        if: always() && inputs.upload_evidence == true
+        uses: actions/upload-artifact@v7
+        with:
+          name: rea-evidence-${{ github.run_number }}
+          path: rea-out/evidence.json
+          if-no-files-found: warn
+          retention-days: 7
