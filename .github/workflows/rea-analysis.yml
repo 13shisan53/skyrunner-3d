@@ -1,0 +1,124 @@
+# REA (Reverse Engineer Anything) — CI reverse-engineering scan
+# Source: https://github.com/morluto/rea  (MIT)
+# REA statically analyses the JavaScript application graph of this repo:
+# modules, imports/exports, feature traces and coverage. No native analysis
+# engine is required for this lane, so it runs headless on ubuntu-latest.
+name: REA analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_path:
+        description: "Sub-path inside the repo to analyse (default: whole repo)"
+        required: false
+        default: "."
+  pull_request:
+    paths:
+      - "index.html"
+      - "src/**"
+      - "vendor/**"
+      - "package.json"
+      - ".github/workflows/rea-analysis.yml"
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "src/**"
+      - "vendor/**"
+      - "package.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rea-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pin the REA release so analysis runs are reproducible.
+  # Bump deliberately: https://github.com/morluto/rea/releases
+  REA_VERSION: "6.7.0"
+
+jobs:
+  analyze:
+    name: Analyse application graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install REA
+        run: npm install --global "rea-agents@${REA_VERSION}"
+
+      - name: Preflight check
+        continue-on-error: true
+        run: rea doctor --json > rea-doctor.json
+
+      - name: Stage application
+        env:
+          TARGET_PATH: ${{ inputs.target_path }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/rea-app" rea-out
+          rsync -a --exclude '.git' --exclude 'node_modules' ./ "$RUNNER_TEMP/rea-app/"
+          if [ -z "$TARGET_PATH" ] || [ "$TARGET_PATH" = "." ]; then
+            TARGET="$RUNNER_TEMP/rea-app"
+          else
+            TARGET="$RUNNER_TEMP/rea-app/$TARGET_PATH"
+          fi
+          echo "target=$TARGET" >> "$GITHUB_ENV"
+          find "$TARGET" -type f | wc -l
+
+      - name: Analyse
+        id: analyse
+        run: |
+          rea analyze "$target" --json > rea-out/evidence.json
+          echo "evidence_bytes=$(wc -c < rea-out/evidence.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Project summary
+        id: view
+        continue-on-error: true
+        run: |
+          jq -c '{source: {kind: "inline", evidence: .}, view: {kind: "summary"}}' \
+            rea-out/evidence.json > rea-out/view-request.json
+          rea inspect-analysis-view rea-out/view-request.json --json > rea-out/summary.json
+
+      - name: Write run summary
+        if: always()
+        continue-on-error: true
+        run: |
+          {
+            echo "## REA analysis"
+            echo ""
+            echo "| metric | value |"
+            echo "| --- | --- |"
+            echo "| evidence bytes | $(wc -c < rea-out/evidence.json 2>/dev/null || echo 0) |"
+            echo "| analysed target | \`$target\` |"
+            echo "| REA version | ${REA_VERSION} |"
+            echo ""
+            if [ -s rea-out/summary.json ]; then
+              echo "### Summary projection"
+              echo '```json'
+              head -c 20000 rea-out/summary.json
+              echo '```'
+            else
+              echo "_Summary projection unavailable — raw Evidence is attached as an artifact._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rea-evidence-${{ github.run_number }}
+          path: |
+            rea-out/
+            rea-doctor.json
+          if-no-files-found: warn
+          retention-days: 14
